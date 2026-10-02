@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#09111a">
+<title>Pit Stop Sprint</title>
+<style>
+:root{--panel:#101a27;--text:#edf6ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#09111a;color:var(--text);font-family:Segoe UI,Arial,sans-serif}
+body{height:100dvh;overflow:hidden;overscroll-behavior:none}
+button,input{font:inherit}
+
+#app{width:100%;height:100dvh;margin:auto;display:flex;flex-direction:column;gap:8px;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+
+#topbar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;
+  min-height:54px;padding:7px 12px;background:var(--panel);border:1px solid #ffffff1f;border-radius:14px}
+#title{font-weight:900;letter-spacing:.8px;font-size:15px}
+.hud{text-align:center}.hud strong{font-size:17px}.hud div{font-size:11.5px;color:#a9bed2;margin-top:2px}
+#leader{text-align:right;font-size:11.5px;line-height:1.4}
+
+/* arena flexes to fill whatever space is left; canvas letterboxes internally so
+   the track NEVER distorts regardless of container shape */
+#arena{flex:1 1 auto;min-height:0;position:relative;background:#0e2517;border-radius:16px;
+  overflow:hidden;box-shadow:0 12px 35px #0008}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+#controls{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:8px}
+.pit{min-width:0;padding:9px 10px;border:2px solid #ffffff1f;border-radius:14px;background:var(--panel);
+  color:white;text-align:left;cursor:pointer;touch-action:manipulation}
+.pit:active{transform:scale(.98)}
+.pit.armed{border-color:#fff;box-shadow:0 0 18px var(--c)}
+.pit:disabled{opacity:.5}
+.pitHead{display:flex;align-items:center;gap:7px}
+.dot{width:14px;height:14px;border-radius:4px;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
+.carName{font-weight:900;font-size:13px}
+/* ---- medal-style position badges ---- */
+.place{margin-left:auto;min-width:38px;padding:3px 7px;border-radius:7px;background:#ffffff14;
+  border:1px solid #ffffff26;font-size:11px;font-weight:900;text-align:center;letter-spacing:.2px;
+  color:#cfe0f0;text-shadow:none}
+.place.gold,.medal.gold{background:linear-gradient(160deg,#fff3c4,#f5c518 55%,#d19a06);
+  border:1px solid #ffe9a8;color:#4a3400;box-shadow:0 0 10px #f5c51866}
+.place.silver,.medal.silver{background:linear-gradient(160deg,#ffffff,#c7d2dd 55%,#93a2b3);
+  border:1px solid #e8eef4;color:#2c3540;box-shadow:0 0 9px #c7d2dd4d}
+.place.bronze,.medal.bronze{background:linear-gradient(160deg,#ffd7b0,#d98b4a 55%,#a8622c);
+  border:1px solid #f0bf95;color:#3d2210;box-shadow:0 0 9px #d98b4a4d}
+.place.fourth,.medal.fourth{background:#ffffff10;border:1px solid #ffffff2b;color:#a9bbcc}
+.place.fin{outline:1px solid #ffffff5c;outline-offset:1px}
+.lapline{display:flex;align-items:baseline;gap:6px;margin-top:6px;font-size:11px;font-weight:800}
+.lapline .lapnum{font-size:13px;color:#cfe4f7}
+.lapline .togo{color:#8ca0b4;font-weight:700}
+.bar{height:11px;margin:6px 0 5px;background:#05090e;border:1px solid #ffffff26;border-radius:8px;overflow:hidden}
+.fill{height:100%;width:100%;transform-origin:left;background:linear-gradient(90deg,var(--c),#fff8)}
+.status{font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.good{color:#69eb87}.watch{color:#ffe16c}.soon{color:#ff9a57}.now{color:#ff6666}
+
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:#05090ee8}
+.overlay.hidden{display:none}
+.card{width:min(440px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px;background:#111c29;
+  border:2px solid #ffffff20;border-radius:20px;box-shadow:0 20px 60px #000c;text-align:center}
+h1{margin:0;font-size:clamp(24px,7vw,31px)}
+.sub{margin:5px 0 16px;color:#a7b7c7;font-size:13px}
+.lapLabel{font-size:13px;font-weight:800}
+.lapReadout{margin:6px 0;font-size:31px;font-weight:900;color:#9bd3ff}
+#lapSlider{width:100%;height:34px;accent-color:#4aa8ff;cursor:pointer}
+.ends{display:flex;justify-content:space-between;color:#8ca0b4;font-size:11px}
+.zeroNote{height:18px;margin:5px 0;color:#ffad68;font-size:12px}
+.go{width:100%;margin-top:6px;padding:13px;border:0;border-radius:12px;background:#43c766;color:#06230e;font-weight:900;cursor:pointer}
+.go:disabled{opacity:.4;cursor:not-allowed}
+.tips{margin-top:12px;color:#9fb0c1;font-size:12px;line-height:1.5}
+.result{display:flex;align-items:center;gap:9px;margin:6px 0;padding:9px;background:#192535;border-radius:9px;text-align:left;font-weight:800}
+.resultTime{margin-left:auto;color:#9eb0c2;font-size:12px}
+.medal{min-width:38px;padding:3px 7px;border-radius:7px;font-size:11px;font-weight:900;text-align:center}
+
+/* ---- racer colour chooser ---- */
+.racerGrid{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:8px;margin:8px 0 4px}
+.countRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 4px}
+.countOpt{padding:10px 4px;border:2px solid #ffffff1f;border-radius:12px;background:#0d1724;
+  color:#cfdded;font-weight:900;font-size:15px;cursor:pointer;touch-action:manipulation}
+.countOpt:hover{border-color:#ffffff4d}
+.countOpt:active{transform:scale(.97)}
+.countOpt.sel{border-color:#4aa8ff;background:#16293d;color:#9ed2ff;box-shadow:0 0 12px #4aa8ff33}
+.countOpt small{display:block;font-size:9px;font-weight:700;opacity:.6;margin-top:2px;letter-spacing:.3px}
+.racerPick{padding:8px 4px 7px;border:2px solid #ffffff1f;border-radius:12px;background:#0d1724;
+  color:#dce9f6;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;
+  touch-action:manipulation}
+.racerPick:hover{border-color:#ffffff4d}
+.racerPick:active{transform:scale(.97)}
+.swatch{width:30px;height:30px;border-radius:8px;background:var(--c);
+  border:2px solid #ffffff3d;box-shadow:0 0 10px var(--c)}
+.racerPick .lbl{font-size:9.5px;font-weight:800;letter-spacing:.3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pickHint{color:#8ca0b4;font-size:11px;margin-bottom:10px}
+
+#paletteOverlay{z-index:30}
+.palCard{width:min(360px,100%);padding:20px;background:#111c29;border:2px solid #ffffff20;
+  border-radius:20px;box-shadow:0 20px 60px #000c;text-align:center}
+.palTitle{font-size:15px;font-weight:900;letter-spacing:.5px}
+.palSub{color:#96a8ba;font-size:12px;margin:4px 0 14px}
+.palGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.palOpt{padding:9px 3px 7px;border:2px solid #ffffff1f;border-radius:12px;background:#0d1724;
+  color:#cfdded;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
+.palOpt:hover:not(:disabled){border-color:#fff}
+.palOpt .chip{width:28px;height:28px;border-radius:8px;background:var(--c);border:2px solid #ffffff40}
+.palOpt .cname{font-size:9.5px;font-weight:800}
+.palOpt:disabled{opacity:.3;cursor:not-allowed}
+.palOpt.current{border-color:#4aa8ff;background:#14263a}
+.palTaken{color:#7d8ea0;font-size:10.5px;margin-top:11px}
+.palClose{margin-top:12px;width:100%;padding:10px;border:0;border-radius:10px;background:#24354a;
+  color:#dbe7f3;font-weight:800;cursor:pointer}
+
+/* ---------- portrait phones ---------- */
+@media (max-width:700px){
+  #app{gap:6px}
+  #topbar{grid-template-columns:1fr auto;min-height:48px;padding:6px 9px}
+  #title{font-size:13px}.hud strong{font-size:15px}#leader{display:none}
+  #controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pit{padding:8px}
+  .racerGrid{grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:6px}
+  .racerPick .lbl{font-size:9px}
+}
+/* ---------- landscape phones: track left, 2x2 controls right ---------- */
+@media (orientation:landscape) and (max-height:620px){
+  #app{display:grid;grid-template-columns:1fr minmax(240px,290px);grid-template-rows:auto 1fr;gap:7px}
+  #topbar{grid-column:1/-1;min-height:42px;padding:5px 10px}
+  #title{font-size:12px}.hud strong{font-size:14px}.hud div{font-size:10.5px}
+  #leader{font-size:10.5px}
+  #arena{grid-column:1;grid-row:2;min-height:0}
+  #controls{grid-column:2;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:stretch}
+  .pit{padding:7px 8px}
+  .carName{font-size:12px}.lapline{margin-top:4px}.bar{margin:5px 0 4px}
+  .card{max-height:calc(100dvh - 24px);padding:16px}
+  h1{font-size:22px}.sub{margin:4px 0 10px}.lapReadout{font-size:25px;margin:3px 0}
+  .tips{display:none}
+}
+</style>
+</head>
+<body>
+<main id="app">
+  <header id="topbar">
+    <div id="title">PIT STOP SPRINT</div>
+    <div class="hud"><strong id="lapText">LAP 1 / 10</strong><div id="remainingText">10 LAPS REMAINING</div></div>
+    <div id="leader">READY</div>
+  </header>
+  <section id="arena"><canvas id="track" aria-label="Bird's-eye racing track"></canvas></section>
+  <section id="controls" aria-label="Pit controls"></section>
+</main>
+
+<div class="overlay" id="startOverlay">
+  <div class="card">
+    <h1>PIT STOP SPRINT</h1>
+    <div class="sub">The cars drive themselves. You control their pit strategy.</div>
+
+    <div class="lapLabel">HOW MANY RACERS</div>
+    <div class="countRow" id="countRow"></div>
+
+    <div class="lapLabel" style="margin-top:14px">RACERS</div>
+    <div class="pickHint">Tap a racer to change its color</div>
+    <div class="racerGrid" id="racerGrid"></div>
+
+    <div class="lapLabel" style="margin-top:14px">RACE LENGTH</div>
+    <div class="lapReadout"><span id="lapValue">10</span> <span id="lapWord">LAPS</span></div>
+    <input id="lapSlider" type="range" min="1" max="50" step="1" value="10" aria-label="Number of race laps">
+    <div class="ends"><span>1</span><span>50</span></div>
+    <div class="zeroNote" id="zeroNote"></div>
+    <button class="go" id="startButton" type="button">START 10-LAP RACE</button>
+    <div class="tips">All four cars start on the same line and cover identical distance &mdash; lane position gives no advantage. They hug the inside line and swing wide only to pass. Tap a card to schedule that car's next pit stop.</div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="paletteOverlay">
+  <div class="palCard">
+    <div class="palTitle" id="palTitle">CHOOSE A COLOR</div>
+    <div class="palSub" id="palSub">Colors already taken are unavailable</div>
+    <div class="palGrid" id="palGrid"></div>
+    <div class="palTaken" id="palTaken"></div>
+    <button class="palClose" id="palClose" type="button">CANCEL</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="finishOverlay">
+  <div class="card"><h1>FINAL RESULTS</h1><div class="sub" id="finishSub"></div><div id="results"></div><button class="go" id="againButton" type="button">RACE AGAIN</button></div>
+</div>
+
+<script>
+'use strict';
+(function(){
+/* ===================== world constants ===================== */
+const WORLD_W=1000, WORLD_H=620;
+const CX=500, CY=310, STRAIGHT=360, RADIUS=172, TRACK_HALF=52;
+const LAP_LENGTH=2*STRAIGHT+2*Math.PI*RADIUS;
+const FINISH=STRAIGHT+Math.PI*RADIUS+STRAIGHT/2;   // mid top-straight
+const PIT_DEPTH=90, PIT_BOX_S=185;
+const TOP_MPH=195, FADE_RATE=2.15, RECHARGE_RATE=32, PIT_SPEED=48;
+
+/* ---- tire-wear variability ----
+   Every car has an identical top speed and identical average wear rate. What
+   differs is HOW that wear arrives: each car runs its own smoothly drifting
+   wear multiplier, so one car may cook its tires for a stretch while another
+   gets a kind phase. Two independent channels (a slow swing and a quicker
+   flutter) are blended, so the signal never repeats and the four cars are
+   fully independent. Net effect: identical pit strategy still yields a
+   different winner nearly every race. */
+const WEAR_SLOW_RANGE=0.22, WEAR_SLOW_MIN=2.6, WEAR_SLOW_MAX=5.2;
+const WEAR_FAST_RANGE=0.10, WEAR_FAST_MIN=0.7, WEAR_FAST_MAX=1.6;
+const WEAR_CLAMP_LO=0.70, WEAR_CLAMP_HI=1.30;
+const smoothstep=t=>t*t*(3-2*t);
+
+function makeChannel(range,minDur,maxDur){
+  const dur=minDur+Math.random()*(maxDur-minDur);
+  return {from:(Math.random()*2-1)*range, to:(Math.random()*2-1)*range,
+          t:Math.random()*dur, dur:dur, range:range, minDur:minDur, maxDur:maxDur};
+}
+function stepChannel(ch,dt){
+  ch.t+=dt;
+  if(ch.t>=ch.dur){
+    ch.t-=ch.dur;
+    ch.from=ch.to;
+    ch.to=(Math.random()*2-1)*ch.range;
+    ch.dur=ch.minDur+Math.random()*(ch.maxDur-ch.minDur);
+  }
+  return ch.from+(ch.to-ch.from)*smoothstep(ch.t/ch.dur);
+}
+
+/* lane offsets: NEGATIVE = inside (toward infield), POSITIVE = outside */
+const INSIDE_LANE=-34, OUTSIDE_LIMIT=36;
+const MIN_RACERS=2, MAX_RACERS=5;
+/* Starting grid: every car lines up abreast on the same start line, spread
+   evenly across the track width. Lane position has no effect on distance. */
+function gridLanes(n){
+  if(n<=1) return [0];
+  const lo=-34, hi=35, step=(hi-lo)/(n-1), out=[];
+  for(let i=0;i<n;i++) out.push(lo+step*i);
+  return out;
+}
+const SIDE_BY_SIDE=21;              // lateral distance that counts as "same lane"
+
+/* ---- selectable paint colors ----
+   `edge` is a contrast outline so dark/light cars stay readable on grey asphalt. */
+const PALETTE=[
+  {name:'RED',    color:'#e33b3b', edge:'#ffb3b3'},
+  {name:'ORANGE', color:'#ff8c1a', edge:'#ffd4a3'},
+  {name:'YELLOW', color:'#ffd633', edge:'#7a5c00'},
+  {name:'GREEN',  color:'#3ddc6b', edge:'#0c5427'},
+  {name:'TEAL',   color:'#22c7b8', edge:'#06504a'},
+  {name:'BLUE',   color:'#4aa8ff', edge:'#0b3c6b'},
+  {name:'PURPLE', color:'#a86cff', edge:'#e2ccff'},
+  {name:'PINK',   color:'#ff5fa2', edge:'#6b1338'},
+  {name:'BROWN',  color:'#9b6b43', edge:'#e8c9ac'},
+  {name:'BLACK',  color:'#23272e', edge:'#9fb0c2'},
+  {name:'WHITE',  color:'#f2f5f8', edge:'#5a6674'},
+  {name:'GRAY',   color:'#9aa6b4', edge:'#2b333c'}
+];
+const DEFAULT_PICKS=['YELLOW','PINK','GREEN','BLUE','ORANGE'];
+/* All MAX_RACERS slots are kept configured so a player's colour choices survive
+   changing the field size. Only the first `racerCount` slots actually race. */
+let racers=DEFAULT_PICKS.map(function(n){
+  const p=PALETTE.find(function(x){return x.name===n;});
+  return {name:p.name,color:p.color,edge:p.edge};
+});
+let racerCount=4;
+const activeRacers=()=>racers.slice(0,racerCount);
+
+const canvas=document.getElementById('track'), ctx=canvas.getContext('2d');
+const arena=document.getElementById('arena'), controls=document.getElementById('controls');
+
+let raceLaps=10, cars=[], raceState='menu', raceTime=0, finishers=[], countdown=0,
+    lastTime=performance.now(), view={scale:1,ox:0,oy:0};
+
+const mod=(n,m)=>((n%m)+m)%m;
+const ordinal=i=>i===0?'1st':i===1?'2nd':i===2?'3rd':(i+1)+'th';
+const medalClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'fourth';
+
+/* ===================== geometry =====================
+   Every car's progress is measured as CENTERLINE distance. Lateral offset is
+   purely cosmetic: the world-speed correction below means a car on the outside
+   line covers the same centerline distance per second as one on the inside.
+   Therefore lane choice can never shorten or lengthen the race.            */
+function pointAt(s,offset){
+  s=mod(s,LAP_LENGTH); offset=offset||0;
+  if(s<STRAIGHT) return {x:CX-STRAIGHT/2+s, y:CY+RADIUS+offset, a:0, curve:false};
+  if(s<STRAIGHT+Math.PI*RADIUS){
+    const q=Math.PI/2-(s-STRAIGHT)/RADIUS, r=RADIUS+offset;
+    return {x:CX+STRAIGHT/2+r*Math.cos(q), y:CY+r*Math.sin(q), a:q-Math.PI/2, curve:true};
+  }
+  if(s<2*STRAIGHT+Math.PI*RADIUS){
+    const u=s-STRAIGHT-Math.PI*RADIUS;
+    return {x:CX+STRAIGHT/2-u, y:CY-RADIUS-offset, a:Math.PI, curve:false};
+  }
+  const q=-Math.PI/2-(s-2*STRAIGHT-Math.PI*RADIUS)/RADIUS, r=RADIUS+offset;
+  return {x:CX-STRAIGHT/2+r*Math.cos(q), y:CY+r*Math.sin(q), a:q-Math.PI/2, curve:true};
+}
+function pitOffset(s){
+  if(s<0||s>STRAIGHT) return 0;
+  if(s<90) return PIT_DEPTH*s/90;
+  if(s>285) return PIT_DEPTH*(STRAIGHT-s)/(STRAIGHT-285);
+  return PIT_DEPTH;
+}
+
+/* ===================== cars ===================== */
+function resetCars(){
+  const lanes=gridLanes(racerCount);
+  cars=activeRacers().map(function(d,i){
+    return {name:d.name, color:d.color, edge:d.edge,
+      distance:0,                 /* identical start for every car */
+      speed:0, energy:100,
+      lane:lanes[i], offset:lanes[i], preferred:INSIDE_LANE,
+      mode:'race', pitRequested:false, lap:1, place:i+1,
+      done:false, finishTime:0,
+      grip:1,                    /* identical top speed for every car */
+      wearSlow:makeChannel(WEAR_SLOW_RANGE,WEAR_SLOW_MIN,WEAR_SLOW_MAX),
+      wearFast:makeChannel(WEAR_FAST_RANGE,WEAR_FAST_MIN,WEAR_FAST_MAX),
+      wearMul:1};
+  });
+  finishers=[]; raceTime=0; updateControls();
+}
+
+function buildControls(){
+  controls.style.setProperty('--n',racerCount);
+  controls.innerHTML=activeRacers().map(function(d,i){
+    return '<button class="pit" type="button" data-index="'+i+'" style="--c:'+d.color+'" aria-label="Schedule '+d.name+' pit stop">'+
+      '<div class="pitHead"><i class="dot"></i><span class="carName">'+d.name+'</span><span class="place fourth">'+ordinal(i)+'</span></div>'+
+      '<div class="lapline"><span class="lapnum">LAP 1 / 10</span><span class="togo">10 to go</span></div>'+
+      '<div class="bar"><div class="fill"></div></div>'+
+      '<div class="status good">READY</div></button>';
+  }).join('');
+  controls.querySelectorAll('.pit').forEach(function(b){
+    b.addEventListener('click',function(){requestPit(Number(this.dataset.index));});
+  });
+}
+function requestPit(i){
+  if(raceState!=='racing') return;
+  const c=cars[i];
+  if(!c||c.done||c.mode!=='race') return;
+  c.pitRequested=!c.pitRequested; updateControls();
+}
+function runningOrder(){
+  return cars.slice().sort(function(a,b){
+    if(a.done&&b.done) return finishers.indexOf(a)-finishers.indexOf(b);
+    if(a.done) return -1;
+    if(b.done) return 1;
+    return b.distance-a.distance;
+  });
+}
+
+/* ===================== simulation ===================== */
+function update(dt){
+  if(countdown>0){ countdown=Math.max(0,countdown-dt); return; }
+  raceTime+=dt;
+
+  for(const c of cars){
+    if(c.done) continue;
+    const s=mod(c.distance+FINISH,LAP_LENGTH),
+          oldS=mod(c.distance+FINISH-c.speed*dt,LAP_LENGTH);
+
+    /* pit state machine */
+    if(c.mode==='race'&&c.pitRequested&&oldS>s) c.mode='pitIn';
+    if(c.mode==='pitIn'&&s>PIT_BOX_S) c.mode='pitStop';
+    if(c.mode==='pitStop'){
+      c.speed=Math.max(0,c.speed-230*dt);
+      if(c.speed<.5){
+        c.speed=0; c.energy=Math.min(100,c.energy+RECHARGE_RATE*dt);
+        if(c.energy>=99.99){ c.energy=100; c.mode='pitOut'; c.pitRequested=false; }
+      }
+    }
+    if(c.mode==='pitOut'&&s>STRAIGHT-4) c.mode='race';
+
+    const inPit=c.mode!=='race';
+    /* advance this car's own wear drift every frame, even while stopped, so the
+       phase it rejoins on is never the same twice */
+    const wear=1+stepChannel(c.wearSlow,dt)+stepChannel(c.wearFast,dt);
+    c.wearMul=Math.max(WEAR_CLAMP_LO,Math.min(WEAR_CLAMP_HI,wear));
+    if(c.mode==='race'||c.mode==='pitIn') c.energy=Math.max(0,c.energy-FADE_RATE*c.wearMul*dt);
+
+    let target=TOP_MPH*(.5+.5*c.energy/100)*c.grip;
+    if(pointAt(s,c.offset).curve) target*=.90;
+    if(inPit) target=Math.min(target,PIT_SPEED);
+    if(c.mode==='pitStop') target=0;
+
+    if(inPit){
+      c.lane=pitOffset(s);
+    } else {
+      /* --- racing line logic: hug the inside, swing out only to pass --- */
+      let blocked=Infinity, wantOut=false, laneBusy=false;
+      for(const o of cars){
+        if(o===c||o.done) continue;
+        const gap=o.distance-c.distance;
+        const lateral=Math.abs(o.offset-c.offset);
+        if(gap>0&&gap<62&&lateral<SIDE_BY_SIDE){
+          if(target>o.speed+1.5) wantOut=true;            /* quicker: go around */
+          else if(gap<36) blocked=Math.min(blocked,o.speed*.98);
+        }
+        /* only hold the line for a car genuinely alongside us on the inside */
+        if(Math.abs(gap)<26&&o.offset<c.offset-6&&lateral<SIDE_BY_SIDE) laneBusy=true;
+      }
+      let goal;
+      if(wantOut){
+        goal=Math.min(OUTSIDE_LIMIT,c.offset+26);          /* move to the outside line */
+      } else if(laneBusy){
+        goal=c.offset;                                     /* hold your line */
+      } else {
+        goal=c.preferred;                                  /* drift back to the inside */
+      }
+      const laneRate=wantOut?46:48;   /* snap back to the inside line decisively */
+      const delta=goal-c.lane;
+      c.lane+=Math.max(-laneRate*dt,Math.min(laneRate*dt,delta));
+      c.lane=Math.max(INSIDE_LANE,Math.min(OUTSIDE_LIMIT,c.lane));
+      target=Math.min(target,blocked);
+    }
+
+    const accel=target>c.speed?120:275;
+    c.speed+=Math.max(-accel*dt,Math.min(accel*dt,target-c.speed));
+    c.offset+=(c.lane-c.offset)*Math.min(1,5*dt);
+
+    /* LANE-NEUTRAL PROGRESS: progress is pure centerline distance, so an outside
+       lane is never longer and never shorter. Passing around the outside costs
+       nothing, and every car must cover exactly raceLaps * LAP_LENGTH. */
+    c.distance+=c.speed*dt;
+
+    const newLap=Math.floor(c.distance/LAP_LENGTH)+1;
+    if(newLap>c.lap){
+      c.lap=newLap;
+      if(c.lap>raceLaps){ c.done=true; c.finishTime=raceTime; finishers.push(c); }
+    }
+  }
+  runningOrder().forEach(function(c,i){ c.place=i+1; });
+  if(finishers.length===cars.length) finishRace();
+}
+
+/* ===================== rendering ===================== */
+/* Canvas backing store matches the element's real pixel size, and the world is
+   drawn with a single UNIFORM scale + letterbox offset. Because scaleX===scaleY,
+   cars can never stretch, on the straights or through the corners.          */
+function resizeCanvas(){
+  const rect=arena.getBoundingClientRect();
+  if(rect.width<2||rect.height<2) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const w=Math.max(1,Math.round(rect.width*dpr)), h=Math.max(1,Math.round(rect.height*dpr));
+  if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
+  /* On a taller-than-wide container (portrait phone) turn the oval sideways so it
+     fills the screen instead of leaving big empty bands. */
+  const rotated=h>w;
+  const s=rotated?Math.min(w/WORLD_H,h/WORLD_W):Math.min(w/WORLD_W,h/WORLD_H);
+  view.scale=s; view.rotated=rotated; view.w=w; view.h=h;
+  view.ox=(w-(rotated?WORLD_H:WORLD_W)*s)/2;
+  view.oy=(h-(rotated?WORLD_W:WORLD_H)*s)/2;
+}
+/* single uniform scale => scaleX always equals scaleY => cars can never stretch */
+function applyWorldTransform(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.translate(view.w/2,view.h/2);
+  if(view.rotated) ctx.rotate(-Math.PI/2);
+  ctx.scale(view.scale,view.scale);
+  ctx.translate(-WORLD_W/2,-WORLD_H/2);
+}
+/* text must stay upright even when the world is rotated */
+function worldText(text,x,y,font,fill){
+  ctx.save(); ctx.translate(x,y);
+  if(view.rotated) ctx.rotate(Math.PI/2);
+  ctx.font=font; ctx.fillStyle=fill; ctx.textAlign='center';
+  ctx.fillText(text,0,0); ctx.restore();
+}
+function roundedRect(x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function ovalPath(){
+  ctx.moveTo(CX-STRAIGHT/2,CY+RADIUS); ctx.lineTo(CX+STRAIGHT/2,CY+RADIUS);
+  ctx.arc(CX+STRAIGHT/2,CY,RADIUS,Math.PI/2,-Math.PI/2,true);
+  ctx.lineTo(CX-STRAIGHT/2,CY-RADIUS);
+  ctx.arc(CX-STRAIGHT/2,CY,RADIUS,-Math.PI/2,-3*Math.PI/2,true);
+}
+function strokeOval(w,color,dash){
+  ctx.beginPath();ovalPath();ctx.lineWidth=w;ctx.strokeStyle=color;
+  ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);
+}
+function draw(){
+  resizeCanvas();
+  /* background fills the whole element (including letterbox bands) */
+  ctx.setTransform(1,0,0,1,0,0);
+  const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+  bg.addColorStop(0,'#1a3a23'); bg.addColorStop(1,'#0c2114');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  /* uniform world transform */
+  applyWorldTransform();
+  ctx.lineCap='round'; ctx.lineJoin='round';
+
+  strokeOval(TRACK_HALF*2+18,'#dfe3e8');
+  strokeOval(TRACK_HALF*2+18,'#d94c43',[22,22]);
+  strokeOval(TRACK_HALF*2,'#3e4654');
+  strokeOval(TRACK_HALF*2-7,'#4b5362');
+
+  /* inside racing line marker */
+  ctx.beginPath();
+  for(let s=0;s<=LAP_LENGTH;s+=6){const p=pointAt(s,INSIDE_LANE);s===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
+  ctx.closePath(); ctx.lineWidth=20; ctx.strokeStyle='#00000026'; ctx.stroke();
+
+  /* pit lane */
+  ctx.beginPath();
+  for(let s=0;s<=STRAIGHT;s+=4){const p=pointAt(s,pitOffset(s));s===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
+  ctx.lineWidth=31; ctx.strokeStyle='#4d5868'; ctx.stroke();
+  /* one pit box per active racer, centred along the pit lane */
+  const boxStart=190-(racerCount-1)*14.5;
+  for(let i=0;i<racerCount;i++){
+    const p=pointAt(boxStart+i*29,PIT_DEPTH);
+    const col=(cars[i]&&cars[i].color)||racers[i].color;
+    ctx.globalAlpha=.35; ctx.fillStyle=col; ctx.fillRect(p.x-12,p.y-11,24,22); ctx.globalAlpha=1;
+  }
+
+  /* start / finish line */
+  const f=pointAt(FINISH,0);
+  ctx.save(); ctx.translate(f.x,f.y);
+  for(let r=0;r<2;r++) for(let k=0;k<8;k++){
+    ctx.fillStyle=((r+k)%2)?'#fff':'#20252e';
+    ctx.fillRect(-9+r*9,-TRACK_HALF+k*(TRACK_HALF*2/8),9,TRACK_HALF*2/8);
+  }
+  ctx.restore();
+
+  worldText('PIT STOP SPRINT',CX,CY+10,'bold 32px Segoe UI','#ffffff12');
+
+  /* cars — uniform transform guarantees no distortion in the corners */
+  cars.slice().sort(function(a,b){return a.offset-b.offset;}).forEach(function(c){
+    const p=pointAt(mod(c.distance+FINISH,LAP_LENGTH),c.offset);
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
+    ctx.fillStyle='#0009'; roundedRect(-13,-8,28,16,5); ctx.fill();
+    ctx.fillStyle='#111820';
+    ctx.fillRect(-11,-10,7,4); ctx.fillRect(5,-10,7,4);
+    ctx.fillRect(-11,6,7,4);   ctx.fillRect(5,6,7,4);
+    ctx.fillStyle=c.color; roundedRect(-14,-8,28,16,5); ctx.fill();
+    /* contrast outline keeps BLACK and WHITE cars readable on grey asphalt */
+    ctx.strokeStyle=c.edge||'#0006'; ctx.lineWidth=1.6;
+    roundedRect(-14,-8,28,16,5); ctx.stroke();
+    ctx.fillStyle='#17202a'; roundedRect(-2,-5,9,10,3); ctx.fill();
+    ctx.fillStyle='#ffffff88'; ctx.fillRect(9,-6,3,12);
+    ctx.restore();
+    if(c.pitRequested&&c.mode!=='pitStop'){
+      ctx.beginPath(); ctx.arc(p.x,p.y,18,0,Math.PI*2);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    }
+  });
+
+  if(countdown>0){
+    worldText(countdown<1?'GO':String(Math.ceil(countdown)),CX,CY+38,
+      'bold 110px Segoe UI',countdown<1?'#52e574':'#ffd633');
+  }
+}
+
+/* ===================== UI ===================== */
+function updateControls(){
+  document.querySelectorAll('.pit').forEach(function(button,i){
+    const c=cars[i]; if(!c) return;
+    const fill=button.querySelector('.fill'), status=button.querySelector('.status'),
+          place=button.querySelector('.place'), lapnum=button.querySelector('.lapnum'),
+          togo=button.querySelector('.togo');
+
+    const rank=c.done?finishers.indexOf(c):c.place-1;
+    place.textContent=ordinal(rank);
+    place.className='place '+medalClass(rank)+(c.done?' fin':'');
+
+    const shownLap=Math.min(c.lap,raceLaps), left=c.done?0:Math.max(0,raceLaps-c.lap+1);
+    lapnum.textContent='LAP '+shownLap+' / '+raceLaps;
+    togo.textContent=c.done?'finished':(left===1?'Final Lap':left+' to go');
+
+    fill.style.transform='scaleX('+(c.energy/100)+')';
+    button.classList.toggle('armed',c.pitRequested);
+    button.disabled=raceState!=='racing'||c.done;
+
+    let text,klass='good';
+    if(c.done){ text='FINISHED · '+c.finishTime.toFixed(1)+'s'; }
+    else if(c.mode==='pitStop'){ text='RECHARGING · '+Math.round(c.energy)+'%'; klass='watch'; }
+    else if(c.mode!=='race'){ text='IN PIT LANE'; klass='watch'; }
+    else if(c.pitRequested){ text='PIT SCHEDULED'; klass='soon'; }
+    else if(c.energy>60){ text=Math.round(c.speed)+' MPH · GOOD'; }
+    else if(c.energy>30){ text=Math.round(c.speed)+' MPH · WATCH'; klass='watch'; }
+    else if(c.energy>15){ text=Math.round(c.speed)+' MPH · PIT SOON'; klass='soon'; }
+    else { text=Math.round(c.speed)+' MPH · PIT NOW'; klass='now'; }
+    status.className='status '+klass; status.textContent=text;
+  });
+}
+function updateHud(){
+  const order=runningOrder(), leader=order[0],
+        shown=Math.min(raceLaps,leader?leader.lap:1),
+        remaining=Math.max(0,raceLaps-shown+1);
+  document.getElementById('lapText').textContent='LAP '+shown+' / '+raceLaps;
+  document.getElementById('remainingText').textContent=remaining+' LAP'+(remaining===1?'':'S')+' REMAINING';
+  document.getElementById('leader').innerHTML=order.map(function(c,i){
+    const left=Math.max(0,raceLaps-c.lap+1);
+    const l=c.done?'finished':(left===1?'Final Lap':left+' to go');
+    return (i+1)+'. <span style="color:'+c.color+'">'+c.name+'</span> <span style="color:#8ca0b4">'+l+'</span>';
+  }).join('<br>');
+}
+function frame(now){
+  const dt=Math.min(.05,(now-lastTime)/1000); lastTime=now;
+  if(raceState==='racing') update(dt);
+  draw(); updateHud(); updateControls();
+  requestAnimationFrame(frame);
+}
+function setLapSelection(v){
+  raceLaps=Math.max(1,Math.min(50,Math.round(Number(v)||1)));
+  document.getElementById('lapValue').textContent=String(raceLaps);
+  document.getElementById('lapWord').textContent=raceLaps===1?'LAP':'LAPS';
+  const start=document.getElementById('startButton');
+  start.disabled=false;
+  start.textContent='START '+raceLaps+'-LAP RACE';
+  updateControls();
+}
+function startRace(){
+  if(raceLaps<1) return;
+  resetCars(); raceState='racing'; countdown=3;
+  document.getElementById('startOverlay').classList.add('hidden');
+  resizeCanvas();
+}
+function finishRace(){
+  raceState='finished';
+  document.getElementById('finishSub').textContent=raceLaps+'-lap race · Winner: '+finishers[0].name;
+  document.getElementById('results').innerHTML=finishers.map(function(c,i){
+    return '<div class="result"><span class="medal '+medalClass(i)+'">'+ordinal(i)+'</span>'+
+      '<i class="dot" style="--c:'+c.color+'"></i><span>'+c.name+'</span>'+
+      '<span class="resultTime">'+c.finishTime.toFixed(2)+' sec</span></div>';
+  }).join('');
+  document.getElementById('finishOverlay').classList.remove('hidden');
+}
+
+/* ===================== racer colour chooser =====================
+   One swatch per active racer. Tapping one opens the palette; any colour worn
+   by another ACTIVE racer is disabled, so the field is always unique. Inactive
+   slots keep their colour so choices survive changing the field size. */
+const racerGrid=document.getElementById('racerGrid'),
+      countRow=document.getElementById('countRow'),
+      paletteOverlay=document.getElementById('paletteOverlay'),
+      palGrid=document.getElementById('palGrid'),
+      palTitle=document.getElementById('palTitle'),
+      palSub=document.getElementById('palSub'),
+      palTaken=document.getElementById('palTaken');
+let pickingIndex=-1;
+
+function buildCountPicker(){
+  const labels={2:'HEAD TO HEAD',3:'TRIPLE',4:'CLASSIC',5:'FULL FIELD'};
+  let html='';
+  for(let n=MIN_RACERS;n<=MAX_RACERS;n++){
+    html+='<button class="countOpt'+(n===racerCount?' sel':'')+'" type="button" data-n="'+n+
+      '" aria-label="'+n+' racers"'+(n===racerCount?' aria-pressed="true"':'')+'>'+n+
+      '<small>'+labels[n]+'</small></button>';
+  }
+  countRow.innerHTML=html;
+  countRow.querySelectorAll('.countOpt').forEach(function(b){
+    b.addEventListener('click',function(){setRacerCount(Number(this.dataset.n));});
+  });
+}
+/* When the field grows, a newly activated slot may clash with an active colour.
+   Give it the first unused colour from the palette instead. */
+function ensureUniqueColors(){
+  const used=[];
+  for(let i=0;i<racerCount;i++){
+    if(used.indexOf(racers[i].name)>=0){
+      const free=PALETTE.find(function(p){return used.indexOf(p.name)<0;});
+      if(free) racers[i]={name:free.name,color:free.color,edge:free.edge};
+    }
+    used.push(racers[i].name);
+  }
+}
+function setRacerCount(n){
+  racerCount=Math.max(MIN_RACERS,Math.min(MAX_RACERS,Math.round(Number(n)||4)));
+  ensureUniqueColors();
+  buildCountPicker();
+  buildRacerPickers();
+  buildControls();
+  resetCars();
+}
+function buildRacerPickers(){
+  racerGrid.style.setProperty('--n',racerCount);
+  racerGrid.innerHTML=activeRacers().map(function(r,i){
+    return '<button class="racerPick" type="button" data-index="'+i+'" style="--c:'+r.color+
+      '" aria-label="Change colour for racer '+(i+1)+', currently '+r.name+'">'+
+      '<span class="swatch"></span><span class="lbl">'+r.name+'</span></button>';
+  }).join('');
+  racerGrid.querySelectorAll('.racerPick').forEach(function(b){
+    b.addEventListener('click',function(){openPalette(Number(this.dataset.index));});
+  });
+}
+function openPalette(i){
+  pickingIndex=i;
+  palTitle.textContent='RACER '+(i+1)+' COLOR';
+  palSub.textContent='Currently '+racers[i].name;
+  const taken=activeRacers().filter(function(r,k){return k!==i;}).map(function(r){return r.name;});
+  palGrid.innerHTML=PALETTE.map(function(p){
+    const isTaken=taken.indexOf(p.name)>=0,
+          isCurrent=racers[i].name===p.name;
+    return '<button class="palOpt'+(isCurrent?' current':'')+'" type="button" data-name="'+p.name+'"'+
+      (isTaken?' disabled':'')+' style="--c:'+p.color+'" aria-label="'+p.name+
+      (isTaken?' (taken)':'')+'"><span class="chip"></span><span class="cname">'+p.name+'</span></button>';
+  }).join('');
+  palTaken.textContent=taken.length?'Taken: '+taken.join(', '):'';
+  palGrid.querySelectorAll('.palOpt').forEach(function(b){
+    b.addEventListener('click',function(){ if(!this.disabled) chooseColor(this.dataset.name); });
+  });
+  paletteOverlay.classList.remove('hidden');
+}
+function closePalette(){ paletteOverlay.classList.add('hidden'); pickingIndex=-1; }
+function chooseColor(name){
+  if(pickingIndex<0) return;
+  const p=PALETTE.find(function(x){return x.name===name;});
+  if(!p) return;
+  /* guard: never allow a duplicate among active racers, even if DOM is tampered with */
+  const clash=activeRacers().some(function(r,k){return k!==pickingIndex&&r.name===p.name;});
+  if(clash) return;
+  racers[pickingIndex]={name:p.name,color:p.color,edge:p.edge};
+  closePalette();
+  buildRacerPickers();   /* refresh swatches */
+  buildControls();       /* pit cards adopt the new colour + name */
+  resetCars();           /* cars on track adopt it too */
+}
+document.getElementById('palClose').addEventListener('click',closePalette);
+paletteOverlay.addEventListener('click',function(e){ if(e.target===paletteOverlay) closePalette(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closePalette(); });
+
+const slider=document.getElementById('lapSlider');
+slider.addEventListener('input',function(){setLapSelection(slider.value);});
+slider.addEventListener('change',function(){setLapSelection(slider.value);});
+slider.addEventListener('wheel',function(e){
+  e.preventDefault();
+  const n=Math.max(1,Math.min(50,Number(slider.value)+(e.deltaY<0?1:-1)));
+  slider.value=String(n); setLapSelection(n);
+},{passive:false});
+document.getElementById('startButton').addEventListener('click',startRace);
+document.getElementById('againButton').addEventListener('click',function(){
+  raceState='menu'; resetCars();
+  document.getElementById('finishOverlay').classList.add('hidden');
+  document.getElementById('startOverlay').classList.remove('hidden');
+});
+document.addEventListener('keydown',function(e){
+  const i=['1','2','3','4','5'].indexOf(e.key);
+  if(i>=0&&i<racerCount) requestPit(i);
+});
+window.addEventListener('resize',resizeCanvas);
+window.addEventListener('orientationchange',function(){setTimeout(resizeCanvas,120);});
+
+buildCountPicker(); buildRacerPickers(); buildControls(); resetCars(); setLapSelection(slider.value);
+resizeCanvas(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

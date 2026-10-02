@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Busy Skies — Airport Boss</title>
+<style>
+:root{--bg:#0b1220;--panel:#141e2e;--panel2:#1a2638;--line:#ffffff1a;--text:#eaf2ff;--dim:#8fa1b8;
+  --amber:#ffc53d;--green:#4ddc86;--blue:#4fb3ff;--red:#ff6470}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif}
+body{height:100dvh;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+svg.ic{width:100%;height:100%;display:block}
+#app{height:100dvh;display:grid;gap:6px;grid-template-columns:minmax(0,1fr) clamp(250px,30vw,350px);grid-template-rows:auto minmax(0,1fr);
+  padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+#hud{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:5px 10px;background:linear-gradient(180deg,#1a2740,#121b2b);
+  border:1px solid var(--line);border-radius:12px}
+.brand{font-weight:900;letter-spacing:1.2px;font-size:14px;color:var(--blue);white-space:nowrap}
+.brand span{color:var(--text);opacity:.6}
+#stats{flex:1;display:flex;justify-content:center;gap:clamp(6px,2vw,22px)}
+.st{display:flex;align-items:baseline;gap:5px;font-size:10px;font-weight:900;letter-spacing:.6px;color:var(--dim);white-space:nowrap}
+.st b{font-size:clamp(13px,2.4vh,17px);color:var(--text)}
+.st.star b{color:var(--amber)}
+#mute{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#0e1624;font-size:16px;flex:none}
+#mapWrap{position:relative;min-height:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#5fa84f}
+#map{display:block;width:100%;height:100%;touch-action:none}
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);padding:6px 14px;border-radius:20px;background:#000000b3;
+  font-weight:900;font-size:13px;letter-spacing:.3px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
+#toast.on{opacity:1}
+#side{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto auto;gap:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 8px;min-height:0}
+.pTitle{font-size:9px;font-weight:900;letter-spacing:1.1px;color:var(--dim);margin-bottom:5px}
+/* selected plane card */
+#sel{display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.selHead{display:flex;align-items:center;gap:8px}
+.tail{width:26px;height:26px;border-radius:8px;flex:none;border:2px solid #ffffff55}
+.selName{font-weight:900;font-size:clamp(14px,2.6vh,18px);letter-spacing:.5px;line-height:1}
+.selSub{font-size:clamp(10px,1.9vh,12.5px);color:var(--dim);font-weight:700;margin-top:3px}
+.selSub.go{color:var(--amber)}
+.pax{margin-left:auto;font-size:10px;font-weight:900;color:var(--dim);text-align:right;line-height:1.2}
+.pax b{display:block;font-size:14px;color:var(--text)}
+.tasks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:5px}
+.task{position:relative;min-height:0;min-width:0;border-radius:11px;border:2px solid #ffffff1c;background:var(--panel2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 2px;overflow:hidden}
+.task .ti{width:clamp(18px,5vh,34px);height:clamp(18px,5vh,34px)}
+.task .tl{font-size:clamp(7.5px,1.55vh,10px);font-weight:900;letter-spacing:.3px;white-space:nowrap}
+.task .ts{font-size:clamp(6.5px,1.3vh,8.5px);font-weight:900;letter-spacing:.4px;color:var(--dim);white-space:nowrap}
+.task .bar{position:absolute;left:0;bottom:0;height:4px;background:var(--blue);width:0}
+.task.need{border-color:var(--amber);background:#33290c;animation:glow 1s infinite}
+.task.need .ts{color:var(--amber)}
+.task.queued{border-color:#4fb3ff88}.task.queued .ts{color:var(--blue)}
+.task.working{border-color:var(--blue);background:#10283f}.task.working .ts{color:var(--blue)}
+.task.done{border-color:#4ddc8666;background:#11291c}.task.done .ts{color:var(--green)}
+.task.locked{opacity:.38}
+.task.na{display:none}
+@keyframes glow{50%{box-shadow:0 0 14px #ffc53d88}}
+.big{flex:1;min-height:0;border:0;border-radius:14px;font-weight:900;font-size:clamp(16px,3.6vh,24px);letter-spacing:1px;
+  display:flex;align-items:center;justify-content:center;gap:10px;color:#1d1400;background:linear-gradient(180deg,#ffe07a,#ffb21f);
+  box-shadow:0 4px 0 #b67a00;animation:glow 1s infinite}
+.big .bi{width:clamp(26px,7vh,44px);height:clamp(26px,7vh,44px)}
+.big.armed{background:linear-gradient(180deg,#9fd3ff,#4f9fe0);color:#06223a;box-shadow:0 4px 0 #2b6aa3;animation:none}
+.big.idle{background:#1a2638;color:var(--dim);box-shadow:none;animation:none;font-size:clamp(12px,2.4vh,15px);font-weight:800;letter-spacing:.3px}
+.hint{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--dim);
+  font-weight:800;font-size:clamp(11px,2.2vh,14px);gap:6px}
+.hint .hi{width:clamp(30px,8vh,54px);height:clamp(30px,8vh,54px);color:var(--amber)}
+.nope{animation:nope .35s!important}
+@keyframes nope{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+/* needs-you chips */
+#needs{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:5px;max-height:clamp(40px,17vh,96px);overflow:hidden}
+.chipN{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:10px;border:2px solid var(--amber);background:#2b230d;
+  font-size:10px;font-weight:900;letter-spacing:.3px;min-width:0}
+.chipN.sel{background:#4a3a0c}
+.chipN .cd{width:11px;height:11px;border-radius:3px;flex:none}
+.chipN .ci{width:17px;height:17px;flex:none;color:var(--amber)}
+.chipN span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.noneN{font-size:10.5px;color:var(--green);font-weight:800}
+/* fleet */
+#fleet{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.fl{display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 1px;border-radius:9px;background:var(--panel2)}
+.fl .fi{width:clamp(14px,3.6vh,22px);height:clamp(14px,3.6vh,22px)}
+.fl .fn{font-size:7.5px;font-weight:900;letter-spacing:.3px;color:var(--dim)}
+.dots{display:flex;gap:3px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.dots i.out{background:#3a4658}
+/* overlays */
+.overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:10px;background:#050a14d9;backdrop-filter:blur(4px)}
+.overlay.hidden{display:none}
+.card{width:min(560px,100%);max-height:calc(100dvh - 20px);overflow:auto;padding:16px 18px;text-align:center;
+  background:linear-gradient(180deg,#1b2840,#0f1828);border:1px solid #ffffff26;border-radius:20px;box-shadow:0 24px 70px #000c}
+.card h1{margin:0;font-size:clamp(22px,5vw,30px);letter-spacing:1.5px;color:var(--blue)}
+.card .sub{color:var(--dim);font-size:12px;margin:4px 0 8px;line-height:1.4}
+.secTitle{font-size:9.5px;font-weight:900;letter-spacing:1.2px;color:var(--dim);margin:10px 0 6px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.mode{border:2px solid #ffffff1a;border-radius:13px;background:#0f1828;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mode b{font-size:15px;letter-spacing:.8px}.mode span{font-size:9.5px;color:var(--dim);font-weight:700}
+.mode.on{border-color:var(--amber);background:#2b230d}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;text-align:left}
+.howI{display:flex;gap:7px;align-items:center;font-size:11px;color:var(--dim);line-height:1.3;background:#0f1828;border-radius:11px;padding:6px}
+.howI .hiI{width:28px;height:28px;flex:none;color:var(--amber)}
+.howI b{color:var(--text)}
+.goBtn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:13px;font-weight:900;font-size:15px;letter-spacing:1px;
+  color:#06210f;background:linear-gradient(180deg,#8dffb4,#2fc76a);box-shadow:0 6px 20px #2fc76a4d}
+.goBtn.alt{background:#24324a;color:var(--text);box-shadow:none;margin-top:7px}
+.sumStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 2px}
+.sumStats div{background:#0f1828;border:1px solid #ffffff1a;border-radius:12px;padding:8px 4px}
+.sumStats b{display:block;font-size:20px;color:var(--amber)}
+.sumStats span{font-size:8.5px;font-weight:900;letter-spacing:.6px;color:var(--dim)}
+@media (orientation:landscape) and (max-height:480px){
+  #app{gap:5px}#hud{padding:3px 8px}.brand{font-size:12px}#mute{width:28px;height:28px;font-size:13px}
+  .panel{padding:5px 6px}.pTitle{margin-bottom:3px}
+  .card{padding:10px 14px}.card .sub{display:none}.secTitle{margin:6px 0 4px}.how,.howT{display:none}.goBtn{margin-top:8px;padding:10px}
+}
+@media (orientation:portrait){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1.5fr) minmax(0,1fr)}
+  .brand{display:none}#stats{justify-content:flex-start;gap:12px}.st{font-size:8.5px;gap:3px}
+  #side{grid-template-rows:minmax(0,1fr) auto auto}
+  .how{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main id="app">
+  <header id="hud">
+    <div class="brand">BUSY <span>SKIES</span></div>
+    <div id="stats">
+      <div class="st">FLIGHTS <b id="sFl">0</b></div>
+      <div class="st">PASSENGERS <b id="sPx">0</b></div>
+      <div class="st star">STARS <b id="sSt">0</b></div>
+    </div>
+    <button id="mute" type="button" aria-label="Sound on or off">🔊</button>
+  </header>
+  <section id="mapWrap"><canvas id="map" aria-label="Airport map"></canvas><div id="toast"></div></section>
+  <aside id="side">
+    <div class="panel" id="sel"></div>
+    <div class="panel"><div class="pTitle">NEEDS YOU</div><div id="needs"></div></div>
+    <div class="panel"><div id="fleet"></div></div>
+  </aside>
+</main>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <h1>✈ BUSY SKIES</h1>
+    <div class="sub">You run the whole airport! Land the planes, send the ground crew, and get everyone back in the sky.</div>
+    <div class="secTitle">HOW BUSY IS THE AIRPORT?</div>
+    <div class="modes" id="modes"></div>
+    <div class="secTitle howT">HOW TO PLAY</div>
+    <div class="how" id="how"></div>
+    <button class="goBtn" id="startBtn" type="button">OPEN THE AIRPORT</button>
+  </div>
+</div>
+<div class="overlay hidden" id="summary">
+  <div class="card">
+    <h1>GREAT SHIFT, BOSS!</h1>
+    <div class="sub" id="sumSub"></div>
+    <div class="sumStats" id="sumStats"></div>
+    <button class="goBtn" id="keepBtn" type="button">KEEP PLAYING</button>
+    <button class="goBtn alt" id="newBtn" type="button">NEW AIRPORT</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+(function(){
+/* ============================================================
+   ICONS — one set of 24x24 paths used by both the panel (SVG)
+   and the map bubbles (Path2D), so there are no emoji to break
+   ============================================================ */
+const ICONS={
+  land:{f:1,d:'M2.5 19h19v2h-19z M9.17 13.36l4.35 1.16 5.31 1.42c.8.21 1.62-.26 1.84-1.06.21-.8-.26-1.62-1.06-1.84l-5.31-1.42-2.76-9.02L10.12 2v8.28L5.15 8.95l-.93-2.32-1.45-.39v5.17l1.6.43 4.8 1.52z'},
+  takeoff:{f:1,d:'M2.5 19h19v2h-19z M22.07 9.64c-.21-.8-1.04-1.28-1.84-1.06L14.92 10l-6.9-6.43-1.93.51 4.14 7.17-4.97 1.33-1.97-1.54-1.45.39 2.59 4.49L21 11.49c.81-.23 1.28-1.05 1.07-1.85z'},
+  off:{d:'M9 6.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M6 21v-6l-1-1v-4a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v4l-1 1v6 M15 12h7 M19 9l3 3-3 3'},
+  board:{d:'M16 6.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M13 21v-6l-1-1v-4a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v4l-1 1v6 M2 12h7 M6 9l3 3-3 3'},
+  fuel:{d:'M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16 M3 21h12 M7 8h4 M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3'},
+  food:{d:'M4 11a8 6 0 0 1 16 0z M3 14.5h18 M5 17.5h14v1a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5z'},
+  bags:{d:'M3 8h18v12H3z M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3 M8 12v5 M16 12v5'},
+  repair:{d:'M14.5 5.5a4.5 4.5 0 0 0-5.8 5.8L3 17v4h4l5.7-5.7a4.5 4.5 0 0 0 5.8-5.8l-2.8 2.8-2.6-.4-.4-2.6z'},
+  push:{d:'M12 21V8 M6 13l6-6 6 6 M5 3h14'},
+  clock:{d:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2'},
+  check:{d:'M5 12.5l4.5 4.5L19 7'},
+  lock:{d:'M6 11h12v10H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3'},
+  tap:{d:'M9 11V5.5a1.5 1.5 0 0 1 3 0V11 M12 10V9a1.5 1.5 0 0 1 3 0v2 M15 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.5a1.5 1.5 0 0 1 2.3-1.9L9 16'},
+  bus:{d:'M4 4h16v13H4z M4 11h16 M7 20v-3 M17 20v-3 M8 7h3 M13 7h3'},
+  tug:{d:'M3 15h18v4H3z M6 15V9h7l3 6 M8 19v1 M16 19v1'}
+};
+function svg(name){ const i=ICONS[name];
+  return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+i.d+'" '+(i.f?'fill="currentColor"':'fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"')+'/></svg>'; }
+const P2D={}; for(const k in ICONS) P2D[k]=new Path2D(ICONS[k].d);
+function drawIcon(c,name,x,y,size,col){
+  c.save(); c.translate(x-size/2,y-size/2); c.scale(size/24,size/24);
+  if(ICONS[name].f){ c.fillStyle=col; c.fill(P2D[name]); }
+  else{ c.strokeStyle=col; c.lineWidth=2.4; c.lineCap='round'; c.lineJoin='round'; c.stroke(P2D[name]); }
+  c.restore();
+}
+
+/* ============================================================
+   WORLD LAYOUT (1000 x 620 units)
+   ============================================================ */
+const WW=1000, WH=620;
+const RWY_Y=150, RWY_X0=170, RWY_X1=968, TWY_Y=232, HS_X=210, HS_Y=192, EXIT_X=900;
+const GATE_Y=418, ROAD_Y=482, TOUCH_X=240;
+const SLOTS=[{x:85,y:300},{x:85,y:430},{x:85,y:560}], SLOT_R=42;
+const MODES={
+  calm:{name:'CALM',gates:3,spawn:22,goal:8,desc:'3 gates · slow'},
+  busy:{name:'BUSY',gates:4,spawn:15,goal:12,desc:'4 gates · steady'},
+  rush:{name:'RUSH',gates:5,spawn:10,goal:16,desc:'5 gates · hectic'}
+};
+const AIRLINES=[
+  {n:'RED',c:'#e33b3b'},{n:'BLUE',c:'#2f7fe0'},{n:'GREEN',c:'#2fbf67'},{n:'ORANGE',c:'#ff8c1a'},
+  {n:'PURPLE',c:'#9a62f0'},{n:'PINK',c:'#ff5fa2'},{n:'YELLOW',c:'#ffd21f'},{n:'TEAL',c:'#1fc1b4'}
+];
+const TASKS=['off','fuel','food','bags','repair','board','push'];
+const PHASE={off:0,fuel:1,food:1,bags:1,repair:1,board:2,push:3};
+const TASK_INFO={
+  off:{label:'PEOPLE OFF',veh:'bus',dur:4},
+  fuel:{label:'FUEL',veh:'fuel',dur:5},
+  food:{label:'FOOD',veh:'food',dur:3.5},
+  bags:{label:'BAGS',veh:'bags',dur:4.5},
+  repair:{label:'REPAIR',veh:'repair',dur:6},
+  board:{label:'PEOPLE ON',veh:'bus',dur:5},
+  push:{label:'PUSH BACK',veh:'tug',dur:0}
+};
+const FLEET=[
+  {type:'bus',n:2,label:'BUS',icon:'bus'},{type:'fuel',n:2,label:'FUEL',icon:'fuel'},
+  {type:'food',n:1,label:'FOOD',icon:'food'},{type:'bags',n:1,label:'BAGS',icon:'bags'},
+  {type:'repair',n:1,label:'REPAIR',icon:'repair'},{type:'tug',n:2,label:'TUG',icon:'tug'}
+];
+const HOMES=[];
+for(const y of [330,372,414]) for(const x of [905,955]) HOMES.push({x,y});
+for(const y of [530,572]) for(const x of [905,955]) HOMES.push({x,y});
+function spotFor(type,gx){
+  return {bus:{x:gx-26,y:452},food:{x:gx+26,y:452},fuel:{x:gx+46,y:408},repair:{x:gx-46,y:408},
+          bags:{x:gx+24,y:384},tug:{x:gx,y:462}}[type];
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t, rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function angDiff(a,b){ let d=b-a; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; return d; }
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);
+  c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+
+/* ============================================================
+   SOUND
+   ============================================================ */
+let AC=null, master=null, muted=false, noiseB=null;
+function initAudio(){
+  if(AC){ AC.resume&&AC.resume(); return; }
+  try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.5; master.connect(AC.destination);
+    noiseB=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=noiseB.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  }catch(e){ AC=null; }
+}
+function tone(f,dur,type,vol,delay,slide){
+  if(!AC||muted) return;
+  const t0=AC.currentTime+(delay||0), o=AC.createOscillator(), g=AC.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f,t0); if(slide) o.frequency.exponentialRampToValueAtTime(slide,t0+dur);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol||.2,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0+dur+.05);
+}
+function swell(dur,peak,freq,vol){
+  if(!AC||muted) return;
+  const t0=AC.currentTime, n=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  n.buffer=noiseB; n.loop=true; f.type='lowpass'; f.frequency.setValueAtTime(freq*.4,t0); f.frequency.linearRampToValueAtTime(freq,t0+dur*peak);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+dur*peak); g.gain.linearRampToValueAtTime(0,t0+dur);
+  n.connect(f); f.connect(g); g.connect(master); n.start(t0); n.stop(t0+dur);
+}
+const sfx={
+  tap:()=>tone(1500,.04,'square',.06),
+  go:()=>{tone(880,.08,'square',.07);tone(880,.08,'square',.07,.12);},
+  done:()=>{tone(660,.1,'triangle',.14);tone(990,.18,'triangle',.14,.09);},
+  nope:()=>{tone(220,.12,'triangle',.18);tone(180,.16,'triangle',.15,.1);},
+  thump:()=>{tone(90,.3,'sine',.4,0,40);swell(1.6,.1,700,.25);},
+  roar:()=>swell(3.2,.45,1400,.32),
+  arrive:()=>{tone(784,.25,'sine',.13);tone(988,.35,'sine',.12,.18);},
+  star:()=>{[784,988,1319].forEach((f,i)=>tone(f,.2,'triangle',.13,i*.09));},
+  fanfare:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.35,'triangle',.2,i*.14));tone(1047,.9,'triangle',.18,.6);}
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let G=null, modeKey='busy';
+function newGame(){
+  const M=MODES[modeKey], gates=[];
+  for(let i=0;i<M.gates;i++) gates.push({n:i+1,x:Math.round(300+i*(500/(M.gates-1))),plane:null});
+  const veh=[]; let h=0;
+  for(const f of FLEET) for(let i=0;i<f.n;i++){ const H=HOMES[h++]; veh.push({type:f.type,home:H,x:H.x,y:H.y,h:-Math.PI/2,state:'home',path:[],pi:0,job:null,t:0}); }
+  G={M,gates,veh,planes:[],queue:{bus:[],fuel:[],food:[],bags:[],repair:[],tug:[]},runwayBy:null,slots:[null,null,null],
+     spawnT:9,t:0,flights:0,pax:0,stars:0,sel:null,floats:[],paused:false,goalShown:false,nextId:1,usedNames:{}};
+  const p0=makePlane(); parkAtGate(p0,gates[0]); G.planes.push(p0);
+  spawnHolding();
+  G.sel=p0;
+}
+function makePlane(){
+  let a,num,name,tries=0;
+  do{ a=pick(AIRLINES); num=Math.floor(rnd(2,99)); name=a.n+' '+num; }while(G.usedNames[name]&&tries++<20);
+  G.usedNames[name]=1;
+  return {id:G.nextId++,name,col:a.c,state:'hold',x:0,y:0,h:0,alt:1,path:[],pi:0,spd:0,gate:null,slot:-1,
+    tasks:{},broken:Math.random()<.4,pax:Math.round(rnd(4,18))*10,wait:0,armed:false,t:0,fade:1,theta:0,blocked:false};
+}
+function parkAtGate(p,g){
+  p.state='atGate'; p.gate=g; g.plane=p; p.x=g.x; p.y=GATE_Y; p.h=Math.PI/2; p.alt=0;
+  for(const k of TASKS) p.tasks[k]={st:(k==='repair'&&!p.broken)?'na':'need',prog:0};
+}
+function spawnHolding(){
+  const s=G.slots.indexOf(null); if(s<0) return false;
+  const p=makePlane(); p.slot=s; G.slots[s]=p; p.theta=rnd(0,6.28); p.fade=0;
+  placeHold(p); G.planes.push(p); sfx.arrive(); toast(p.name+' is here!'); return true;
+}
+function placeHold(p){ const S=SLOTS[p.slot]; p.x=S.x+Math.cos(p.theta)*SLOT_R; p.y=S.y+Math.sin(p.theta)*SLOT_R; p.h=p.theta+Math.PI/2; }
+
+/* ============================================================
+   RULES
+   ============================================================ */
+const avail=(p,k)=>TASKS.every(o=>PHASE[o]>=PHASE[k]||p.tasks[o].st==='done'||p.tasks[o].st==='na');
+const freeGate=()=>G.gates.find(g=>!g.plane);
+function firstNeed(p){ if(p.state!=='atGate') return null; return TASKS.find(k=>p.tasks[k].st==='need'&&avail(p,k))||null; }
+function needsYou(p){
+  if(p.state==='hold'||p.state==='holdShort') return !p.armed;
+  return !!firstNeed(p);
+}
+function bubbleAction(p){
+  if(p.state==='hold') return p.armed?null:'land';
+  if(p.state==='holdShort') return p.armed?null:'takeoff';
+  return firstNeed(p);
+}
+function act(p,a){
+  if(!a) return false;
+  if(a==='land'||a==='takeoff'){ if(p.armed) return false; p.armed=true; sfx.go(); return true; }
+  return requestTask(p,a);
+}
+function requestTask(p,k){
+  const T=p.tasks[k];
+  if(!T||T.st!=='need') return false;
+  if(!avail(p,k)){ sfx.nope(); toast(k==='board'?'Finish fuel, food, bags & repair first':k==='push'?'Let the people on first':'Let the people off first'); return 'locked'; }
+  T.st='queued'; G.queue[TASK_INFO[k].veh].push({p,k}); sfx.go(); return true;
+}
+
+/* ============================================================
+   MOVEMENT
+   ============================================================ */
+function follow(o,dt,speed,reverse,turnRate){
+  let rem=speed*dt;
+  while(rem>0&&o.pi<o.path.length){
+    const t=o.path[o.pi], dx=t.x-o.x, dy=t.y-o.y, d=Math.hypot(dx,dy);
+    if(d>.01){ const want=Math.atan2(dy,dx)+(reverse?Math.PI:0); o.h+=clamp(angDiff(o.h,want),-(turnRate||4)*dt,(turnRate||4)*dt); }
+    if(d<=rem){ o.x=t.x; o.y=t.y; rem-=d; o.pi++; }
+    else{ o.x+=dx/d*rem; o.y+=dy/d*rem; rem=0; }
+  }
+  return o.pi>=o.path.length;
+}
+const GROUND=new Set(['taxiIn','taxiOut','holdShort','startup','pushReady','pushback','atGate','lineup','roll','rollout']);
+function blockedAhead(p){
+  const t=p.path[p.pi]; if(!t) return false;
+  let dx=t.x-p.x, dy=t.y-p.y, d=Math.hypot(dx,dy); if(d<.01) return false; dx/=d; dy/=d;
+  for(const o of G.planes){
+    if(o===p||!GROUND.has(o.state)||o.alt>.05) continue;
+    const ox=o.x-p.x, oy=o.y-p.y, along=ox*dx+oy*dy, lat=Math.abs(ox*dy-oy*dx);
+    if(along>0&&along<60&&lat<24) return true;
+  }
+  return false;
+}
+function taxiwayClear(gx){
+  return !G.planes.some(o=>(o.state==='taxiIn'||o.state==='taxiOut'||o.state==='startup'||o.state==='rollout')&&
+    o.x>gx-80&&o.x<gx+140&&o.y>195&&o.y<300);
+}
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+function update(dt){
+  if(G.paused) return;
+  G.t+=dt;
+  G.spawnT-=dt;
+  if(G.spawnT<=0){
+    const ok=G.planes.length<G.M.gates+3&&spawnHolding();
+    G.spawnT=ok?G.M.spawn*rnd(.8,1.2):2;
+  }
+  for(const p of G.planes.slice()) updatePlane(p,dt);
+  for(const v of G.veh) updateVeh(v,dt);
+  dispatch();
+  for(const f of G.floats) f.t+=dt;
+  G.floats=G.floats.filter(f=>f.t<1.8);
+}
+function updatePlane(p,dt){
+  if(needsYou(p)) p.wait+=dt;
+  p.fade=Math.min(1,p.fade+dt*1.5);
+  switch(p.state){
+    case 'hold':{
+      p.theta+=dt*.55; placeHold(p); p.alt=1;
+      if(p.armed&&!G.runwayBy){ const g=freeGate(); if(g){
+        G.runwayBy=p; g.plane=p; p.gate=g; G.slots[p.slot]=null; p.slot=-1; p.armed=false;
+        p.state='approach'; p.pi=0; p.spd=85;
+        p.path=[{x:45,y:235},{x:120,y:162},{x:TOUCH_X,y:RWY_Y},{x:EXIT_X,y:RWY_Y},{x:EXIT_X,y:TWY_Y},{x:g.x,y:TWY_Y},{x:g.x,y:GATE_Y}];
+      }} break;}
+    case 'approach': case 'rollout': case 'taxiIn':{
+      let sp=85;
+      if(p.state==='rollout') sp=Math.max(30,85-(p.x-TOUCH_X)*.12);
+      if(p.state==='taxiIn'){ sp=34; if(blockedAhead(p)){ p.blocked=true; break; } }
+      p.blocked=false;
+      const end=follow(p,dt,sp,false,p.state==='approach'?2.2:4);
+      if(p.state==='approach'){
+        p.alt=p.pi<2?1:clamp((TOUCH_X-p.x)/120,0,1);
+        if(p.pi>=3){ p.state='rollout'; p.alt=0; sfx.thump(); floatAt(p.x,p.y,'TOUCHDOWN!','#ffffff'); }
+      }
+      if(p.state==='rollout'&&p.y>RWY_Y+34){ p.state='taxiIn'; if(G.runwayBy===p) G.runwayBy=null; }
+      if(end){ parkAtGate(p,p.gate); sfx.done(); }
+      break;}
+    case 'atGate': break;
+    case 'pushReady':
+      if(taxiwayClear(p.gate.x)){
+        const gx=p.gate.x; p.state='pushback'; p.pi=0;
+        p.path=[{x:gx,y:276}];
+        for(let i=1;i<=8;i++){ const th=Math.PI+i/8*Math.PI/2; p.path.push({x:gx+40+40*Math.cos(th),y:272+40*Math.sin(th)}); }
+        p.pushLen=pathLen(p);
+      } break;
+    case 'pushback':{
+      const end=follow(p,dt,15,true,3.5);
+      const tug=p.tug; if(tug){ tug.x=p.x+Math.cos(p.h)*36; tug.y=p.y+Math.sin(p.h)*36; tug.h=p.h+Math.PI; }
+      p.tasks.push.prog=clamp(1-remLen(p)/p.pushLen,0,1);
+      if(end){
+        p.tasks.push.st='done'; p.gate.plane=null; p.gate=null; sfx.done();
+        if(tug){ tug.state='returning'; tug.pi=0; tug.path=[{x:tug.x,y:ROAD_Y},{x:tug.home.x,y:ROAD_Y},tug.home]; p.tug=null; }
+        p.state='startup'; p.t=0;
+      } break;}
+    case 'startup': p.t+=dt; if(p.t>1.4){ p.state='taxiOut'; p.pi=0; p.path=[{x:HS_X,y:TWY_Y},{x:HS_X,y:HS_Y}]; } break;
+    case 'taxiOut':
+      if(blockedAhead(p)){ p.blocked=true; break; } p.blocked=false;
+      if(follow(p,dt,34)) { p.state='holdShort'; p.armed=false; }
+      break;
+    case 'holdShort':
+      if(p.armed&&!G.runwayBy){ G.runwayBy=p; p.armed=false; p.state='lineup'; p.pi=0; p.path=[{x:HS_X,y:RWY_Y+8},{x:HS_X+40,y:RWY_Y}]; }
+      break;
+    case 'lineup': if(follow(p,dt,22,false,3)){ p.state='roll'; p.spd=8; p.pi=0; p.path=[{x:1120,y:RWY_Y}]; sfx.roar(); } break;
+    case 'roll':
+      p.spd=Math.min(170,p.spd+dt*42); follow(p,dt,p.spd);
+      p.alt=clamp((p.x-640)/300,0,1);
+      if(p.x>780&&G.runwayBy===p) G.runwayBy=null;
+      if(p.x>1090) depart(p);
+      break;
+  }
+}
+function pathLen(p){ let L=0,x=p.x,y=p.y; for(const q of p.path){ L+=Math.hypot(q.x-x,q.y-y); x=q.x;y=q.y; } return L; }
+function remLen(p){ let L=0,x=p.x,y=p.y; for(let i=p.pi;i<p.path.length;i++){ const q=p.path[i]; L+=Math.hypot(q.x-x,q.y-y); x=q.x;y=q.y; } return L; }
+function depart(p){
+  G.planes.splice(G.planes.indexOf(p),1);
+  if(G.sel===p) G.sel=null;
+  delete G.usedNames[p.name];
+  const s=p.wait<30?3:p.wait<70?2:1;
+  G.flights++; G.pax+=p.pax; G.stars+=s;
+  floatAt(900,RWY_Y-30,'★'.repeat(s),'#ffd23f',true); sfx.star();
+  if(G.flights>=G.M.goal&&!G.goalShown){ G.goalShown=true; setTimeout(showSummary,900); }
+}
+function dispatch(){
+  for(const type in G.queue){
+    const q=G.queue[type];
+    while(q.length){
+      const v=G.veh.find(v=>v.type===type&&v.state==='home'); if(!v) break;
+      const job=q.shift(), s=spotFor(type,job.p.gate.x);
+      v.job=job; v.state='toJob'; v.pi=0; v.path=[{x:v.x,y:ROAD_Y},{x:s.x,y:ROAD_Y},s];
+    }
+  }
+}
+function updateVeh(v,dt){
+  if(v.state==='toJob'){
+    if(follow(v,dt,85,false,7)){
+      const {p,k}=v.job;
+      p.tasks[k].st='working';
+      if(k==='push'){ v.state='towing'; p.tug=v; p.state='pushReady'; v.h=-Math.PI/2; }
+      else { v.state='working'; v.t=0; }
+    }
+  } else if(v.state==='working'){
+    const {p,k}=v.job; v.t+=dt; const D=TASK_INFO[k].dur;
+    p.tasks[k].prog=clamp(v.t/D,0,1);
+    if(v.t>=D){
+      p.tasks[k].st='done'; sfx.done();
+      if(k==='repair') p.broken=false;
+      v.job=null; v.state='returning'; v.pi=0; v.path=[{x:v.x,y:ROAD_Y},{x:v.home.x,y:ROAD_Y},v.home];
+    }
+  } else if(v.state==='returning'){
+    if(follow(v,dt,85,false,7)){ v.state='home'; v.job=null; }
+  } else if(v.state==='home'){ v.h+=clamp(angDiff(v.h,-Math.PI/2),-4*dt,4*dt); }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const cv=$('map'), cx=cv.getContext('2d');
+const V={s:1,ox:0,oy:0,rot:false,w:0,h:0,dpr:1};
+function sizeView(){
+  const r=cv.getBoundingClientRect(); if(r.width<2||r.height<2) return false;
+  const dpr=Math.min(2,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+  const rot=h>w*1.05, bw=rot?WH:WW, bh=rot?WW:WH, s=Math.min(w/bw,h/bh);
+  Object.assign(V,{s,rot,w,h,dpr,ox:(w-bw*s)/2,oy:(h-bh*s)/2}); return true;
+}
+function worldTf(){ if(V.rot) cx.setTransform(0,-V.s,V.s,0,V.ox,V.oy+WW*V.s); else cx.setTransform(V.s,0,0,V.s,V.ox,V.oy); }
+function toS(x,y){ return V.rot?{x:V.ox+y*V.s,y:V.oy+(WW-x)*V.s}:{x:V.ox+x*V.s,y:V.oy+y*V.s}; }
+function toW(sx,sy){ return V.rot?{x:WW-(sy-V.oy)/V.s,y:(sx-V.ox)/V.s}:{x:(sx-V.ox)/V.s,y:(sy-V.oy)/V.s}; }
+const UI=()=>clamp(Math.min(V.w,V.h)/(380*V.dpr),.85,1.5)*V.dpr;
+
+function draw(){
+  if(!sizeView()) return;
+  cx.setTransform(1,0,0,1,0,0); cx.fillStyle='#5fa84f'; cx.fillRect(0,0,V.w,V.h);
+  worldTf(); drawGround();
+  const ground=G?G.planes.filter(p=>p.alt<.02):[], air=G?G.planes.filter(p=>p.alt>=.02):[];
+  if(G){
+    for(const p of ground) drawPlane(p);
+    for(const v of G.veh) drawVeh(v);
+    for(const p of air) drawShadow(p);
+    for(const p of air) drawPlane(p);
+  }
+  cx.setTransform(1,0,0,1,0,0);
+  drawLabels();
+  if(G){ drawSelection(); drawBubbles(); drawFloats(); }
+}
+function drawGround(){
+  const c=cx;
+  c.fillStyle='#5fa84f'; c.fillRect(-3000,-3000,7000,7000);
+  c.fillStyle='#66b056'; for(let x=-1600;x<WW+1600;x+=80) c.fillRect(x,-3000,40,7000);
+  /* holding area */
+  c.setLineDash([8,8]); c.strokeStyle='#ffffff55'; c.lineWidth=2;
+  for(const s of SLOTS){ c.beginPath(); c.arc(s.x,s.y,SLOT_R,0,6.3); c.stroke(); }
+  c.setLineDash([]);
+  /* apron */
+  c.fillStyle='#b9c1ca'; c.fillRect(250,252,615,255);
+  c.fillStyle='#aab3bd'; c.fillRect(250,252,615,4);
+  /* taxiways */
+  c.fillStyle='#575d67';
+  c.fillRect(HS_X-14,RWY_Y,28,TWY_Y-RWY_Y+14); c.fillRect(EXIT_X-14,RWY_Y,28,TWY_Y-RWY_Y+14);
+  c.fillRect(HS_X-14,TWY_Y-14,EXIT_X-HS_X+28,28);
+  c.strokeStyle='#ffd23f'; c.lineWidth=1.6;
+  c.beginPath(); c.moveTo(HS_X,RWY_Y+18); c.lineTo(HS_X,TWY_Y); c.lineTo(EXIT_X,TWY_Y); c.lineTo(EXIT_X,RWY_Y+18); c.stroke();
+  /* hold short bars */
+  c.fillStyle='#ffd23f'; c.fillRect(HS_X-14,RWY_Y+22,28,3); c.fillRect(HS_X-14,RWY_Y+27,28,1.5);
+  /* runway */
+  c.fillStyle='#3a3e46'; c.fillRect(RWY_X0,RWY_Y-20,RWY_X1-RWY_X0,40);
+  c.fillStyle='#eef0f2'; c.fillRect(RWY_X0,RWY_Y-19,RWY_X1-RWY_X0,1.5); c.fillRect(RWY_X0,RWY_Y+17.5,RWY_X1-RWY_X0,1.5);
+  for(let x=RWY_X0+60;x<RWY_X1-60;x+=40) c.fillRect(x,RWY_Y-1,22,2);
+  for(let i=0;i<6;i++){ c.fillRect(RWY_X0+6,RWY_Y-16+i*6,26,3); c.fillRect(RWY_X1-32,RWY_Y-16+i*6,26,3); }
+  c.fillRect(TOUCH_X+20,RWY_Y-13,30,4); c.fillRect(TOUCH_X+20,RWY_Y+9,30,4);
+  /* gate stands */
+  if(G) for(const g of G.gates){
+    c.strokeStyle='#ffd23f'; c.lineWidth=1.6; c.beginPath(); c.moveTo(g.x,TWY_Y+14); c.lineTo(g.x,GATE_Y+30); c.stroke();
+    c.strokeStyle='#ffffffaa'; c.lineWidth=1.2; c.strokeRect(g.x-48,GATE_Y-40,96,80);
+  }
+  /* service road */
+  c.fillStyle='#7d848e'; c.fillRect(250,ROAD_Y-11,740,22);
+  c.strokeStyle='#ffffffaa'; c.lineWidth=1.4; c.setLineDash([10,9]); c.beginPath(); c.moveTo(255,ROAD_Y); c.lineTo(990,ROAD_Y); c.stroke(); c.setLineDash([]);
+  /* terminal */
+  c.fillStyle='#dfe6ee'; rr(c,255,506,600,90,8); c.fill();
+  c.fillStyle='#7fb3dc'; c.fillRect(262,508,586,10);
+  c.fillStyle='#c9d2dc'; for(let x=290;x<840;x+=60) c.fillRect(x,530,30,48);
+  /* garage */
+  c.fillStyle='#98a1ac'; c.fillRect(872,300,124,300);
+  c.strokeStyle='#ffffffcc'; c.lineWidth=1.2;
+  for(const H of HOMES){ c.strokeRect(H.x-14,H.y-18,28,36); }
+  /* tower */
+  c.fillStyle='#d9dee5'; c.beginPath(); c.arc(190,555,22,0,6.3); c.fill();
+  c.fillStyle='#4f8fc8'; c.beginPath(); c.arc(190,555,15,0,6.3); c.fill();
+  c.fillStyle='#e8eef5'; c.beginPath(); c.arc(190,555,8,0,6.3); c.fill();
+}
+function drawPlane(p){
+  const c=cx, s=1+p.alt*.35;
+  c.save(); c.translate(p.x,p.y); c.rotate(p.h); c.scale(s,s); c.globalAlpha=p.fade;
+  planeShape(c,p.col,false);
+  if(p.broken&&p.state==='atGate'){
+    const k=(G.t*1.6)%1; c.globalAlpha=.6*(1-k); c.fillStyle='#555';
+    c.beginPath(); c.arc(-2-k*8,-16-k*10,4+k*6,0,6.3); c.fill();
+  }
+  c.restore();
+}
+function drawShadow(p){
+  const c=cx; c.save(); c.translate(p.x+p.alt*20,p.y+p.alt*28); c.rotate(p.h); c.globalAlpha=.22*p.fade; planeShape(c,'#000',true); c.restore();
+}
+function planeShape(c,col,shadow){
+  const body=shadow?'#000':'#f6f8fb', wing=shadow?'#000':'#c5ccd5';
+  c.fillStyle=wing;
+  c.beginPath(); c.moveTo(8,-4); c.lineTo(-8,-31); c.lineTo(-15,-31); c.lineTo(-6,-4); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(8,4); c.lineTo(-8,31); c.lineTo(-15,31); c.lineTo(-6,4); c.closePath(); c.fill();
+  if(!shadow){ c.fillStyle='#8c96a3'; rr(c,-2,-18,10,5,2); c.fill(); rr(c,-2,13,10,5,2); c.fill(); }
+  c.fillStyle=shadow?'#000':col;
+  c.beginPath(); c.moveTo(-22,-2); c.lineTo(-30,-13); c.lineTo(-34,-13); c.lineTo(-30,-2); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-22,2); c.lineTo(-30,13); c.lineTo(-34,13); c.lineTo(-30,2); c.closePath(); c.fill();
+  c.fillStyle=body; c.beginPath(); c.ellipse(0,0,32,5.6,0,0,6.3); c.fill();
+  if(!shadow){
+    c.strokeStyle='#00000030'; c.lineWidth=.8; c.stroke();
+    c.fillStyle=col; c.fillRect(-30,-1.4,52,2.8);
+    c.fillStyle='#24344a'; c.beginPath(); c.ellipse(26,0,3.5,3.4,0,-1.3,1.3); c.fill();
+  }
+}
+function drawVeh(v){
+  const c=cx; c.save(); c.translate(v.x,v.y); c.rotate(v.h);
+  const moving=v.state==='toJob'||v.state==='returning';
+  c.fillStyle='#00000033'; rr(c,-11,-5,24,12,3); c.fill();
+  switch(v.type){
+    case 'bus': c.fillStyle='#2f7fe0'; rr(c,-13,-6,26,12,3); c.fill(); c.fillStyle='#d9ecff'; c.fillRect(-10,-3.5,18,7); c.fillStyle='#2f7fe0'; for(let i=-7;i<8;i+=5) c.fillRect(i,-3.5,1.4,7); break;
+    case 'fuel': c.fillStyle='#e23b3b'; rr(c,6,-5,7,10,2); c.fill(); c.fillStyle='#ffd23f'; rr(c,-13,-5.5,18,11,5); c.fill(); c.fillStyle='#00000030'; c.fillRect(-11,-1,14,2); break;
+    case 'food': c.fillStyle='#2fbf67'; rr(c,6,-5,7,10,2); c.fill(); c.fillStyle='#ffffff'; rr(c,-12,-6,17,12,2); c.fill(); c.fillStyle='#2fbf67'; c.fillRect(-9,-1,11,2); break;
+    case 'bags': c.fillStyle='#3d4f63'; rr(c,5,-4,8,8,2); c.fill(); c.fillStyle='#6b7c8f';
+      rr(c,-6,-4,9,8,1.5); c.fill(); rr(c,-17,-4,9,8,1.5); c.fill(); c.fillStyle='#ff8c1a'; c.fillRect(-4,-2,4,4); c.fillStyle='#4fb3ff'; c.fillRect(-15,-2,4,4); break;
+    case 'repair': c.fillStyle='#ff8c1a'; rr(c,-11,-6,22,12,3); c.fill(); c.fillStyle='#fff'; c.fillRect(-4,-1.2,8,2.4); c.fillRect(-1.2,-4,2.4,8); break;
+    case 'tug': c.fillStyle='#4a5a3c'; rr(c,-8,-6,16,12,3); c.fill(); c.fillStyle='#ffd23f'; c.fillRect(-8,-1.5,16,3); break;
+  }
+  if(moving&&(G.t*3)%1<.5){ c.fillStyle='#ffb21f'; c.beginPath(); c.arc(0,0,2,0,6.3); c.fill(); }
+  c.restore();
+}
+/* screen-space text (stays upright in portrait) */
+function sText(t,x,y,size,col,align){
+  cx.font='900 '+Math.round(size)+'px Segoe UI, Arial'; cx.textAlign=align||'center'; cx.textBaseline='middle';
+  cx.fillStyle=col; cx.fillText(t,x,y);
+}
+function drawLabels(){
+  const u=UI();
+  let a=toS(85,620-6); 
+  a=toS(85,250); sText('WAITING TO LAND',a.x,a.y,9*u,'#ffffffcc');
+  a=toS((RWY_X0+RWY_X1)/2,RWY_Y-30); sText('RUNWAY',a.x,a.y,9*u,'#ffffffaa');
+  a=toS(934,312); sText('GARAGE',a.x,a.y,8.5*u,'#ffffffdd');
+  a=toS(555,560); sText('TERMINAL',a.x,a.y,10*u,'#5b6b80');
+  if(G) for(const g of G.gates){ const q=toS(g.x,GATE_Y+36); sText('GATE '+g.n,q.x,q.y,8.5*u,'#4b5768'); }
+}
+function drawSelection(){
+  const p=G.sel; if(!p||!G.planes.includes(p)) return;
+  const u=UI(), q=toS(p.x,p.y), r=30*V.s*(1+p.alt*.35)+4*u;
+  cx.strokeStyle='#ffffff'; cx.lineWidth=2.5*u; cx.setLineDash([6*u,5*u]); cx.lineDashOffset=-G.t*20*u;
+  cx.beginPath(); cx.arc(q.x,q.y,r,0,6.3); cx.stroke(); cx.setLineDash([]);
+  sText(p.name,q.x,q.y+r+9*u,10*u,'#ffffff');
+}
+function bubbleOf(p){
+  const u=UI(), q=toS(p.x,p.y), off=24*V.s*(1+p.alt*.35)+14*u;
+  return {x:q.x,y:q.y-off,r:15*u};
+}
+function drawBubbles(){
+  const u=UI();
+  for(const p of G.planes){
+    if(p.fade<.5) continue;
+    const a=bubbleAction(p), b=bubbleOf(p);
+    let working=null;
+    if(p.state==='atGate'||p.state==='pushReady'||p.state==='pushback') working=TASKS.find(k=>p.tasks[k]&&p.tasks[k].st==='working');
+    const armed=(p.state==='hold'||p.state==='holdShort')&&p.armed;
+    const queued=p.state==='atGate'&&!a&&TASKS.some(k=>p.tasks[k].st==='queued');
+    if(!a&&!working&&!armed&&!queued) continue;
+    const pulse=a?1+Math.sin(G.t*6)*.08:1, r=b.r*pulse*(a?1:.8);
+    cx.beginPath(); cx.moveTo(b.x-5*u,b.y+r*.8); cx.lineTo(b.x,b.y+r+6*u); cx.lineTo(b.x+5*u,b.y+r*.8); cx.closePath();
+    cx.fillStyle=a?'#ffc53d':'#ffffff'; cx.fill();
+    cx.beginPath(); cx.arc(b.x,b.y,r,0,6.3); cx.fill();
+    cx.strokeStyle='#00000055'; cx.lineWidth=1.5*u; cx.stroke();
+    if(a) drawIcon(cx,a,b.x,b.y,r*1.25,'#2a1c00');
+    else if(working){
+      drawIcon(cx,working,b.x,b.y,r*1.15,'#1f6fb8');
+      cx.strokeStyle='#4fb3ff'; cx.lineWidth=3*u; cx.beginPath(); cx.arc(b.x,b.y,r+2.5*u,-Math.PI/2,-Math.PI/2+6.283*p.tasks[working].prog); cx.stroke();
+    } else drawIcon(cx,'clock',b.x,b.y,r*1.2,'#5b6b80');
+  }
+}
+function floatAt(x,y,text,col,big){ G.floats.push({x,y,text,col,big,t:0}); }
+function drawFloats(){
+  const u=UI();
+  for(const f of G.floats){
+    const q=toS(f.x,f.y); cx.globalAlpha=clamp(1.8-f.t,0,1);
+    cx.font='900 '+Math.round((f.big?22:13)*u)+'px Segoe UI, Arial'; cx.textAlign='center'; cx.textBaseline='middle';
+    cx.lineWidth=3*u; cx.strokeStyle='#0008'; cx.strokeText(f.text,q.x,q.y-f.t*26*u);
+    cx.fillStyle=f.col; cx.fillText(f.text,q.x,q.y-f.t*26*u);
+  }
+  cx.globalAlpha=1;
+}
+
+/* ============================================================
+   INPUT — tap a bubble to do it, tap a plane to pick it
+   ============================================================ */
+cv.addEventListener('pointerdown',e=>{
+  if(!G||G.paused) return;
+  initAudio();
+  const r=cv.getBoundingClientRect(), sx=(e.clientX-r.left)*V.dpr, sy=(e.clientY-r.top)*V.dpr, u=UI();
+  for(const p of G.planes.slice().reverse()){
+    const a=bubbleAction(p); if(!a||p.fade<.5) continue;
+    const b=bubbleOf(p);
+    if(Math.hypot(sx-b.x,sy-b.y)<b.r+9*u){ G.sel=p; const res=act(p,a); if(res==='locked') shakeSel(); return; }
+  }
+  let best=null, bd=1e9;
+  for(const p of G.planes){ const q=toS(p.x,p.y), d=Math.hypot(sx-q.x,sy-q.y); if(d<bd){bd=d;best=p;} }
+  if(best&&bd<Math.max(34*u,34*V.s*(1+best.alt*.35))){ G.sel=best; sfx.tap(); }
+});
+
+/* ============================================================
+   PANEL
+   ============================================================ */
+const selEl=$('sel'); let selKey='';
+function stateGroup(p){ if(!p) return 'none'; if(p.state==='hold') return 'hold'; if(p.state==='holdShort') return 'hs';
+  if(['atGate','pushReady','pushback'].includes(p.state)) return 'gate'; return 'move'; }
+function statusText(p){
+  switch(p.state){
+    case 'hold': return p.armed?(G.runwayBy?'Waiting for the runway…':!freeGate()?'Waiting for a free gate…':'Cleared to land!'):'Circling — tap LAND';
+    case 'approach': return 'Landing!';
+    case 'rollout': return 'Slowing down on the runway';
+    case 'taxiIn': return p.blocked?'Waiting for traffic…':'Taxiing to Gate '+p.gate.n;
+    case 'atGate': { const n=firstNeed(p); if(n) return 'Needs: '+TASK_INFO[n].label; return 'Ground crew working…'; }
+    case 'pushReady': return 'Waiting for the taxiway to clear';
+    case 'pushback': return 'Pushing back';
+    case 'startup': return 'Starting engines';
+    case 'taxiOut': return p.blocked?'Waiting in line…':'Taxiing to the runway';
+    case 'holdShort': return p.armed?'Waiting for the runway…':'Ready! Tap TAKEOFF';
+    default: return 'Taking off!';
+  }
+}
+function buildSel(){
+  const p=G&&G.sel&&G.planes.includes(G.sel)?G.sel:null;
+  const grp=stateGroup(p), key=(p?p.id:0)+'|'+grp+'|'+(p&&p.tasks.repair?p.tasks.repair.st==='na':'');
+  if(key!==selKey){
+    selKey=key;
+    if(!p){ selEl.innerHTML='<div class="hint"><div class="hi">'+svg('tap')+'</div>Tap a plane or a yellow bubble!</div>'; }
+    else{
+      let h='<div class="selHead"><div class="tail" style="background:'+p.col+'"></div><div><div class="selName">'+p.name+'</div><div class="selSub" id="selSub"></div></div>'+
+        '<div class="pax"><b>'+p.pax+'</b>PEOPLE</div></div>';
+      if(grp==='hold') h+='<button class="big" id="bigBtn" type="button"><span class="bi">'+svg('land')+'</span>LAND</button>';
+      else if(grp==='hs') h+='<button class="big" id="bigBtn" type="button"><span class="bi">'+svg('takeoff')+'</span>TAKEOFF</button>';
+      else if(grp==='gate'){
+        h+='<div class="tasks">'+TASKS.map(k=>'<button class="task" type="button" data-k="'+k+'"><span class="ti">'+svg(k)+'</span><span class="tl">'+TASK_INFO[k].label+'</span><span class="ts"></span><span class="bar"></span></button>').join('')+'</div>';
+      } else h+='<button class="big idle" type="button" disabled id="bigBtn"></button>';
+      selEl.innerHTML=h;
+      const bb=$('bigBtn'); if(bb&&(grp==='hold'||grp==='hs')) bb.addEventListener('click',()=>{ initAudio(); act(p,grp==='hold'?'land':'takeoff'); });
+      selEl.querySelectorAll('.task').forEach(b=>b.addEventListener('click',()=>{ initAudio(); const r=requestTask(p,b.dataset.k); if(r==='locked'){ b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } }));
+    }
+  }
+  if(!p) return;
+  const sub=$('selSub'), txt=statusText(p); sub.textContent=txt; sub.className='selSub'+(needsYou(p)?' go':'');
+  const bb=$('bigBtn');
+  if(bb&&(grp==='hold'||grp==='hs')) bb.className='big'+(p.armed?' armed':'');
+  if(bb&&grp==='move') bb.textContent=txt;
+  if(grp==='gate') selEl.querySelectorAll('.task').forEach(b=>{
+    const k=b.dataset.k, T=p.tasks[k], av=avail(p,k);
+    let cls=T.st, s='';
+    if(T.st==='need'){ if(av) s='TAP!'; else { cls='locked'; s='LATER'; } }
+    else if(T.st==='queued') s='ON THE WAY';
+    else if(T.st==='working') s=k==='push'?(p.state==='pushReady'?'WAITING':'PUSHING'):'WORKING';
+    else if(T.st==='done') s='DONE ✓';
+    b.className='task '+cls; b.querySelector('.ts').textContent=s;
+    b.querySelector('.bar').style.width=(T.st==='working'?T.prog*100:0)+'%';
+  });
+}
+let needKey='';
+function buildNeeds(){
+  const list=G.planes.filter(needsYou).sort((a,b)=>b.wait-a.wait);
+  const key=list.map(p=>p.id+bubbleAction(p)+(G.sel===p?'s':'')).join(',');
+  if(key===needKey) return; needKey=key;
+  const el=$('needs');
+  if(!list.length){ el.innerHTML='<div class="noneN">All caught up! ✓</div>'; return; }
+  el.innerHTML=list.map(p=>'<button class="chipN'+(G.sel===p?' sel':'')+'" type="button" data-id="'+p.id+'"><i class="cd" style="background:'+p.col+'"></i><span class="ci">'+svg(bubbleAction(p))+'</span><span>'+p.name+'</span></button>').join('');
+  el.querySelectorAll('.chipN').forEach(b=>b.addEventListener('click',()=>{ const p=G.planes.find(q=>q.id===+b.dataset.id); if(p){ G.sel=p; sfx.tap(); } }));
+}
+function buildFleet(){
+  $('fleet').innerHTML=FLEET.map(f=>'<div class="fl"><span class="fi">'+svg(f.icon)+'</span><span class="fn">'+f.label+'</span><span class="dots" data-t="'+f.type+'">'+'<i></i>'.repeat(f.n)+'</span></div>').join('');
+}
+function syncFleet(){
+  document.querySelectorAll('.dots').forEach(d=>{
+    const vs=G.veh.filter(v=>v.type===d.dataset.t);
+    [...d.children].forEach((i,k)=>i.className=vs[k]&&vs[k].state==='home'?'':'out');
+  });
+}
+function syncHud(){ $('sFl').textContent=G.flights+' / '+G.M.goal; $('sPx').textContent=G.pax.toLocaleString(); $('sSt').textContent=G.stars; }
+let toastT=null;
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),1800); }
+function shakeSel(){ selEl.classList.remove('nope'); void selEl.offsetWidth; selEl.classList.add('nope'); }
+
+/* ============================================================
+   MENUS
+   ============================================================ */
+function buildTitle(){
+  $('modes').innerHTML=Object.keys(MODES).map(k=>'<button class="mode'+(k===modeKey?' on':'')+'" type="button" data-k="'+k+'"><b>'+MODES[k].name+'</b><span>'+MODES[k].desc+'</span></button>').join('');
+  $('modes').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{ modeKey=b.dataset.k; buildTitle(); }));
+  $('how').innerHTML=[
+    ['land','<b>Land</b> planes when they are circling.'],
+    ['fuel','<b>Send the crew</b>: people off, fuel, food, bags, repairs, people on.'],
+    ['takeoff','<b>Push back</b> and <b>take off</b>. Collect stars!']
+  ].map(h=>'<div class="howI"><span class="hiI">'+svg(h[0])+'</span><span>'+h[1]+'</span></div>').join('');
+}
+function showSummary(){
+  G.paused=true;
+  $('sumSub').textContent=G.flights+' flights flew away happy from your '+G.M.name.toLowerCase()+' airport.';
+  $('sumStats').innerHTML='<div><b>'+G.flights+'</b><span>FLIGHTS</span></div><div><b>'+G.pax.toLocaleString()+'</b><span>PASSENGERS</span></div><div><b>'+G.stars+' ★</b><span>STARS</span></div>';
+  $('summary').classList.remove('hidden'); sfx.fanfare();
+}
+$('startBtn').addEventListener('click',()=>{ initAudio(); newGame(); selKey=''; needKey=''; $('title').classList.add('hidden'); });
+$('keepBtn').addEventListener('click',()=>{ $('summary').classList.add('hidden'); G.paused=false; });
+$('newBtn').addEventListener('click',()=>{ $('summary').classList.add('hidden'); G=null; selKey=''; $('title').classList.remove('hidden'); buildTitle(); });
+$('mute').addEventListener('click',()=>{ muted=!muted; $('mute').textContent=muted?'🔇':'🔊'; initAudio(); });
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let last=performance.now();
+function frame(now){
+  const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=now;
+  if(G){ update(dt); buildSel(); buildNeeds(); syncFleet(); syncHud(); }
+  draw();
+  requestAnimationFrame(frame);
+}
+buildTitle(); buildFleet();
+selEl.innerHTML='<div class="hint"><div class="hi">'+svg('tap')+'</div>Tap a plane or a yellow bubble!</div>';
+requestAnimationFrame(frame);
+window.__AH={get G(){return G},update,act,bubbleAction,needsYou,requestTask,newGame,setMode:k=>modeKey=k};
+})();
+</script>
+</body>
+</html>

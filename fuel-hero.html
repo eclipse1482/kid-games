@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e14">
+<title>Fuel Hero v3 — Airport Fuel Truck</title>
+<style>
+:root{--bg:#0a0e14;--panel:#161d27;--bay:#121820;--line:#ffffff17;--text:#e8f0fa;--dim:#8d9db0;
+  --amber:#ffc53d;--green:#4ddc86;--red:#ff5f6a;--cyan:#4fd6ff;
+  --th:clamp(20px,6vh,42px);--cap:clamp(24px,7vh,48px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif}
+body{height:100dvh;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+svg.ic{width:100%;height:100%;display:block;pointer-events:none}
+[data-i]{display:block}
+.ctl *{pointer-events:none}
+.brakeCap{display:grid!important;place-items:center}
+#app{height:100dvh;display:grid;gap:6px;
+  grid-template-columns:minmax(0,1fr) clamp(150px,20vw,250px);
+  grid-template-rows:auto minmax(0,1fr) clamp(120px,37vh,232px);
+  padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+#hud{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center;gap:10px;
+  padding:5px 10px;background:linear-gradient(180deg,#1b2431,#131a24);border:1px solid var(--line);border-radius:12px}
+.brand{font-weight:900;letter-spacing:1.2px;font-size:13px;color:var(--amber);white-space:nowrap}
+.brand span{color:var(--text);opacity:.55}
+#sayTxt{text-align:center;font-weight:900;font-size:clamp(13px,2.5vh,19px);letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sayTxt.wait{color:var(--dim)} #sayTxt.go{color:var(--amber)} #sayTxt.low{color:#ff9a3d}
+#lowLamp{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:9px;border:2px solid #3a4452;background:#0e141c;
+  font-size:9.5px;font-weight:900;letter-spacing:.6px;color:#4b5868;white-space:nowrap}
+#lowLamp i{width:16px;height:16px;flex:none;color:#4b5868}
+#lowLamp.on{border-color:#ff9a3d;background:#3a230a;color:#ffb35a;animation:lowBlink .7s infinite}
+#lowLamp.on i{color:#ffb35a}
+#lowLamp.empty{border-color:#ff5f6a;background:#3a0f12;color:#ff8a92;animation:lowBlink .4s infinite}
+#lowLamp.empty i{color:#ff8a92}
+@keyframes lowBlink{50%{filter:brightness(1.6);box-shadow:0 0 14px #ff9a3d88}}
+#stats{display:flex;gap:10px}
+.stt{font-size:9px;font-weight:900;letter-spacing:.6px;color:var(--dim);text-align:center;line-height:1.1;white-space:nowrap}
+.stt b{display:block;font-size:clamp(13px,2.3vh,16px);color:var(--text)}
+.stt.star b{color:var(--amber)}
+#mute{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#0e141c;padding:7px;color:var(--text)}
+#scene{grid-column:1;grid-row:2;position:relative;min-height:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#8cc9f5}
+#sceneCv{display:block;width:100%;height:100%;touch-action:none}
+#gauges{grid-column:2;grid-row:2;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#gaugeCv{display:block;width:100%;height:100%}
+#console{grid-column:1/-1;grid-row:3;min-height:0;display:grid;gap:6px;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,.9fr);
+  grid-template-areas:"drive truck safe hose pump";
+  padding:6px;border-radius:14px;background:linear-gradient(180deg,#232c38,#171e28);border:1px solid #ffffff1f}
+.bay{position:relative;min-height:0;min-width:0;background:var(--bay);border:1px solid #00000066;border-radius:11px;
+  box-shadow:inset 0 2px 6px #0008;padding:14px 5px 5px;display:grid;gap:5px}
+.bayLbl{position:absolute;left:7px;top:3px;font-size:7.5px;font-weight:900;letter-spacing:1px;color:#56667a;pointer-events:none}
+#bayDrive{grid-area:drive;grid-template-columns:1fr 1fr}
+#bayTruck{grid-area:truck;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+#baySafe{grid-area:safe;grid-template-columns:repeat(3,minmax(0,1fr))}
+#bayHose{grid-area:hose;grid-template-columns:repeat(3,minmax(0,1fr))}
+#bayPump{grid-area:pump;place-items:center}
+.ctl{min-width:0;min-height:0;border:1px solid #ffffff12;border-radius:10px;background:#0c1118;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:2px;position:relative}
+.ctl:active{transform:translateY(1px)}
+.lbl{font-size:clamp(7.5px,1.7vh,10.5px);font-weight:900;letter-spacing:.4px;color:#aebccd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.st{font-size:clamp(7px,1.45vh,9px);font-weight:900;letter-spacing:.6px;color:#5f6e80;white-space:nowrap}
+.on .st{color:var(--green)}
+.cap{width:var(--cap);height:var(--cap);border-radius:50%;flex:none;display:block;padding:calc(var(--cap)*.2);color:#c9d4e1;
+  background:radial-gradient(circle at 40% 35%,#3a4554,#1a212b);border:2px solid #485466;box-shadow:0 3px 0 #05080c}
+.ctl:active .cap{transform:translateY(2px);box-shadow:0 1px 0 #05080c}
+.on .cap{background:radial-gradient(circle at 40% 35%,#8ff5b8,#1f9a57);border-color:#8ff5b8;color:#06301a;box-shadow:0 0 14px #4ddc8688,0 3px 0 #05080c}
+.busy .cap{background:radial-gradient(circle at 40% 35%,#ffe08a,#c98a12);border-color:#ffe08a;color:#3a2600;animation:blink .45s infinite}
+@keyframes blink{50%{filter:brightness(1.35)}}
+.brakeCap{font-weight:900;font-size:calc(var(--cap)*.5);padding:0;color:#ffd1d1;background:radial-gradient(circle at 40% 35%,#6b2a2e,#2a1013);border-color:#7a3a3f}
+.on .brakeCap{background:radial-gradient(circle at 40% 35%,#ff9aa0,#d12a36);border-color:#ffb3b8;color:#fff;box-shadow:0 0 16px #ff5f6a99,0 3px 0 #05080c}
+.hornCap{background:radial-gradient(circle at 40% 35%,#ffd36b,#c27a00);border-color:#ffe3a0;color:#3a2400}
+.tog{position:relative;width:calc(var(--th)*.62);height:var(--th);border-radius:8px;background:#05080c;border:2px solid #394352;flex:none}
+.tog::before{content:"";position:absolute;left:50%;top:18%;bottom:18%;width:22%;transform:translateX(-50%);border-radius:4px;background:#000}
+.tog i{position:absolute;left:50%;width:56%;height:46%;transform:translateX(-50%);top:50%;border-radius:5px;
+  background:linear-gradient(180deg,#f2f5f9,#9aa6b4);box-shadow:0 2px 3px #000a;transition:top .15s}
+.on .tog i{top:4%}
+.icS{width:clamp(12px,2.6vh,17px);height:clamp(12px,2.6vh,17px);color:#8fa0b3}
+.on .icS{color:var(--green)}
+.beacon.on .icS{color:var(--amber);animation:blink .5s infinite}
+.slot{position:relative;width:12px;height:calc(var(--th)*1.25);border-radius:6px;background:#000;border:1px solid #3a4452;flex:none}
+.slot i{position:absolute;left:50%;top:15%;width:28px;height:14px;transform:translate(-50%,-50%);border-radius:4px;
+  background:linear-gradient(180deg,#ffe08a,#d39a10);border:2px solid #5a4410;transition:top .3s}
+.on .slot i{top:85%}
+.valve{position:relative;width:calc(var(--cap)*1.1);height:calc(var(--cap)*1.1);flex:none}
+.valve::before{content:"";position:absolute;left:0;right:0;top:50%;height:26%;transform:translateY(-50%);border-radius:4px;background:linear-gradient(180deg,#9aa6b4,#5a6574)}
+.valve b{position:absolute;left:50%;top:50%;width:30%;height:30%;transform:translate(-50%,-50%);border-radius:50%;background:#2a313b;border:2px solid #6c7887}
+.valve i{position:absolute;left:50%;top:50%;width:92%;height:20%;border-radius:6px;background:linear-gradient(180deg,#ff8a8a,#c02a2a);
+  border:2px solid #5a1010;transform:translate(-50%,-50%) rotate(90deg);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.on .valve i{transform:translate(-50%,-50%) rotate(0deg);background:linear-gradient(180deg,#9dffbf,#1f9a57);border-color:#0a4a24}
+.pedal{touch-action:none;border-radius:12px;background:linear-gradient(180deg,#3a4452,#1d242e);border:2px solid #4c5868;
+  box-shadow:0 4px 0 #05080c;flex-direction:column}
+.pedal .pa{width:clamp(22px,7vh,46px);height:clamp(22px,7vh,46px);color:#d9e2ec}
+.pedal.held{transform:translateY(3px);box-shadow:0 1px 0 #05080c;background:linear-gradient(180deg,#4d5a6b,#2a333f)}
+.pedal.blocked{opacity:.5}
+.pedal.alt{box-shadow:0 0 0 2px #ff9a3d,0 4px 0 #05080c}
+#pump{width:min(100%,calc(100% - 4px));aspect-ratio:1;max-height:100%;border-radius:50%;touch-action:none;border:4px solid #8fffbf;
+  background:radial-gradient(circle at 40% 32%,#7dffb0,#16904d 70%);box-shadow:0 6px 0 #04361b,0 0 18px #2fc76a55;color:#05301a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:900;padding:6%}
+#pump *{pointer-events:none}
+#pump .pi{width:42%;height:42%}
+#pump .pl{font-size:clamp(9px,2.1vh,14px);letter-spacing:.6px}
+#pump.off{filter:grayscale(.85) brightness(.55)}
+#pump.held{transform:translateY(4px);box-shadow:0 2px 0 #04361b,0 0 30px #2fc76aaa}
+#pump.flow{animation:flow .5s infinite}
+@keyframes flow{50%{box-shadow:0 2px 0 #04361b,0 0 40px 10px #7dffb0aa}}
+.want{animation:want 1s infinite}
+#pump.want{animation:want 1s infinite}
+@keyframes want{0%,100%{box-shadow:0 0 0 2px #ffc53d,0 0 10px 2px #ffc53d55}50%{box-shadow:0 0 0 4px #ffe38a,0 0 26px 8px #ffc53daa}}
+.nope{animation:nope .35s!important}
+@keyframes nope{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+#pointer{position:fixed;z-index:15;width:34px;height:34px;pointer-events:none;display:none;color:#ffd84d;filter:drop-shadow(0 2px 3px #000c);animation:pt .8s infinite}
+@keyframes pt{50%{transform:translateY(-7px)}}
+#toast{position:absolute;left:50%;top:30px;transform:translateX(-50%);padding:6px 14px;border-radius:20px;background:#000000b8;
+  font-weight:900;font-size:13px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
+#toast.on{opacity:1}
+.overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:10px;background:#04070cd9;backdrop-filter:blur(4px)}
+.overlay.hidden{display:none}
+.card{width:min(560px,100%);max-height:calc(100dvh - 20px);overflow:auto;padding:16px 18px;text-align:center;
+  background:linear-gradient(180deg,#1a2433,#0f1621);border:1px solid #ffffff26;border-radius:20px;box-shadow:0 24px 70px #000c}
+.card h1{margin:0;font-size:clamp(22px,5vw,30px);letter-spacing:1.5px;color:var(--amber)}
+.card .sub{color:var(--dim);font-size:12px;margin:4px 0 8px;line-height:1.4}
+.secTitle{font-size:9.5px;font-weight:900;letter-spacing:1.2px;color:var(--dim);margin:10px 0 6px}
+.pickRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.pc{border:2px solid #ffffff1a;border-radius:12px;background:#0d1520;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pc canvas{display:block;width:100%;height:44px}
+.pc span{font-size:9px;font-weight:900;letter-spacing:.4px}
+.pc.sel{border-color:var(--amber);background:#2a230e}
+.goBtn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:13px;font-weight:900;font-size:15px;letter-spacing:1px;
+  color:#06210f;background:linear-gradient(180deg,#8dffb4,#2fc76a);box-shadow:0 6px 20px #2fc76a4d}
+@media (orientation:landscape) and (max-height:480px){
+  #app{gap:5px;grid-template-rows:auto minmax(0,1fr) clamp(116px,38vh,200px)}
+  #hud{padding:3px 8px}.brand{font-size:11px}#mute{width:28px;height:28px;padding:5px}
+  #lowLamp{padding:2px 6px;font-size:8.5px}
+  .card{padding:10px 14px}.card .sub{display:none}.secTitle{margin:6px 0 4px}.pc canvas{height:32px}.goBtn{margin-top:8px;padding:10px}
+}
+@media (orientation:portrait){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) clamp(78px,12vh,120px) auto}
+  #scene{grid-column:1;grid-row:2}
+  #gauges{grid-column:1;grid-row:3}
+  #console{grid-row:4;grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-rows:clamp(92px,13vh,130px) clamp(112px,17vh,170px);
+    grid-template-areas:"safe safe safe hose hose hose" "drive drive truck truck pump pump"}
+  :root{--th:clamp(20px,4.2vh,38px);--cap:clamp(24px,4.6vh,44px)}
+  .lbl{font-size:clamp(7px,1.15vh,9.5px);letter-spacing:0}
+  .brand{display:none}
+  #hud{grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px}
+  #lowLamp span{display:none}#lowLamp{padding:4px}
+  #stats{gap:6px}.stt{font-size:7.5px}
+  #sayTxt{font-size:clamp(12px,1.9vh,17px);text-align:left}
+}
+</style>
+</head>
+<body>
+<main id="app">
+  <header id="hud">
+    <div class="brand">FUEL <span>HERO</span></div>
+    <div id="sayTxt">Welcome to work!</div>
+    <div id="lowLamp"><i data-i="warn"></i><span id="lowTxt">LOW FUEL</span></div>
+    <div id="stats">
+      <div class="stt star">PLANES<b id="sPl">0</b></div>
+      <div class="stt">GALLONS<b id="sGa">0</b></div>
+    </div>
+    <button id="mute" type="button" aria-label="Sound on or off"></button>
+  </header>
+  <section id="scene"><canvas id="sceneCv" aria-label="Airport ramp, side view"></canvas><div id="toast"></div></section>
+  <aside id="gauges"><canvas id="gaugeCv"></canvas></aside>
+  <section id="console">
+    <div class="bay" id="bayDrive"><div class="bayLbl">DRIVE</div>
+      <button class="ctl pedal" data-ctl="back" type="button"><span class="pa" data-i="left"></span><span class="lbl">BACK</span></button>
+      <button class="ctl pedal" data-ctl="fwd" type="button"><span class="pa" data-i="right"></span><span class="lbl">GO</span></button>
+    </div>
+    <div class="bay" id="bayTruck"><div class="bayLbl">TRUCK</div>
+      <button class="ctl" data-ctl="engine" type="button"><span class="cap" data-i="key"></span><span class="lbl">KEY</span></button>
+      <button class="ctl beacon" data-ctl="beacon" type="button"><span class="icS" data-i="beacon"></span><span class="tog"><i></i></span><span class="lbl">BEACON</span></button>
+      <button class="ctl" data-ctl="lights" type="button"><span class="icS" data-i="lights"></span><span class="tog"><i></i></span><span class="lbl">LIGHTS</span></button>
+      <button class="ctl" data-ctl="horn" type="button"><span class="cap hornCap" data-i="horn"></span><span class="lbl">HORN</span></button>
+    </div>
+    <div class="bay" id="baySafe"><div class="bayLbl">PARK SAFE</div>
+      <button class="ctl" data-ctl="brake" type="button"><span class="cap brakeCap">P</span><span class="lbl">BRAKE</span><span class="st">OFF</span></button>
+      <button class="ctl" data-ctl="chocks" type="button"><span class="cap" data-i="chock"></span><span class="lbl">CHOCKS</span><span class="st">UP</span></button>
+      <button class="ctl" data-ctl="ground" type="button"><span class="icS" data-i="ground"></span><span class="tog"><i></i></span><span class="lbl">GROUND</span><span class="st">OFF</span></button>
+    </div>
+    <div class="bay" id="bayHose"><div class="bayLbl">HOSE</div>
+      <button class="ctl" data-ctl="hose" type="button"><span class="slot"><i></i></span><span class="lbl">HOSE</span><span class="st">IN</span></button>
+      <button class="ctl" data-ctl="connect" type="button"><span class="cap" data-i="nozzle"></span><span class="lbl">CONNECT</span><span class="st">OFF</span></button>
+      <button class="ctl" data-ctl="valve" type="button"><span class="valve"><i></i><b></b></span><span class="lbl">VALVE</span><span class="st">SHUT</span></button>
+    </div>
+    <div class="bay" id="bayPump"><div class="bayLbl">PUMP</div>
+      <button id="pump" class="off" data-ctl="pump" type="button"><span class="pi" data-i="drop"></span><span class="pl" id="pumpLbl">HOLD</span></button>
+    </div>
+  </section>
+</main>
+<div id="pointer"></div>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <h1>FUEL HERO</h1>
+    <div class="sub">You drive the airport fuel truck! Park safely, hook up the hose, and fill up every plane. When the LOW FUEL light flashes, you choose: fuel one more plane, or refill at the fuel depot. The glowing control is always the next one to press.</div>
+    <div class="secTitle">PICK YOUR TRUCK</div>
+    <div class="pickRow" id="truckPick"></div>
+    <button class="goBtn" id="startBtn" type="button">START MY SHIFT</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+(function(){
+/* v3: stop long-press menus / callouts anywhere in the game */
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>e.preventDefault());
+
+const ICONS={
+  key:{d:'M8 15a4 4 0 1 1 0-8 4 4 0 0 1 0 8z M12 11h9 M18 11v3.5 M15.5 11v2.5'},
+  beacon:{d:'M6 19h12 M8 19v-6a4 4 0 0 1 8 0v6 M12 3v2.5 M4.5 6.5l1.8 1.8 M19.5 6.5l-1.8 1.8 M2 13h2 M20 13h2'},
+  lights:{d:'M13 6c4 0 7 2.7 7 6s-3 6-7 6z M10 8H3 M10 12H3 M10 16H3'},
+  horn:{f:1,d:'M3 9.5v5h4l5.5 4.5v-14L7 9.5z M15.5 8.2a5.3 5.3 0 0 1 0 7.6l-1.2-1.2a3.6 3.6 0 0 0 0-5.2z M18.3 5.4a9.2 9.2 0 0 1 0 13.2l-1.2-1.2a7.5 7.5 0 0 0 0-10.8z'},
+  chock:{d:'M3 19h18 M5 19L18 8v11z'},
+  ground:{d:'M12 3v9 M5 12h14 M8 16h8 M10.5 20h3'},
+  nozzle:{d:'M2 10h9l3-2.5h5v7h-5l-3-2.5H2z M19 11h3 M7 13v5'},
+  drop:{f:1,d:'M12 2.5C9 7 5.5 10.5 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10.5 15 7 12 2.5z'},
+  warn:{f:1,d:'M12 2.5L1.5 21h21zM11 9h2v6.5h-2zm0 8h2v2h-2z'},
+  left:{f:1,d:'M15.5 4L6 12l9.5 8z'},
+  right:{f:1,d:'M8.5 4L18 12l-9.5 8z'},
+  tap:{d:'M9 11V5.5a1.5 1.5 0 0 1 3 0V11 M12 10V9a1.5 1.5 0 0 1 3 0v2 M15 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.5a1.5 1.5 0 0 1 2.3-1.9L9 16'},
+  sound:{f:1,d:'M3 9.5v5h4l5.5 4.5v-14L7 9.5z M15.5 8.2a5.3 5.3 0 0 1 0 7.6l-1.2-1.2a3.6 3.6 0 0 0 0-5.2z'},
+  mute:{f:1,d:'M3 9.5v5h4l5.5 4.5v-14L7 9.5z M15 9.2l1.2-1.2 2.3 2.3 2.3-2.3L22 9.2l-2.3 2.3 2.3 2.3-1.2 1.2-2.3-2.3-2.3 2.3-1.2-1.2 2.3-2.3z'}
+};
+function svg(n){ const i=ICONS[n];
+  return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+i.d+'" '+(i.f?'fill="currentColor" fill-rule="evenodd"':'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"')+'/></svg>'; }
+document.querySelectorAll('[data-i]').forEach(e=>e.innerHTML=svg(e.dataset.i));
+const P2D={}; for(const k in ICONS) P2D[k]=new Path2D(ICONS[k].d);
+function drawIcon(c,n,x,y,size,col){ c.save(); c.translate(x-size/2,y-size/2); c.scale(size/24,size/24);
+  if(ICONS[n].f){ c.fillStyle=col; c.fill(P2D[n],'evenodd'); } else { c.strokeStyle=col; c.lineWidth=2.4; c.lineCap='round'; c.lineJoin='round'; c.stroke(P2D[n]); } c.restore(); }
+
+const WORLDW=2650, GATE_X=[900,1600,2300], GANTRY_X=260, DEPOT_TX=290;
+const CAP=10000, LOW=2500, START_FUEL=7000, PUMP_RATE=450, FILL_RATE=1800;
+const PORT_DX=-110, PORT_Y=106, SPOT_DX=-60, STAKE_DX=150;
+const TRUCKS=[
+  {name:'YELLOW',col:'#ffcc1f',col2:'#c99600'},{name:'RED',col:'#e33b3b',col2:'#9a1f1f'},
+  {name:'BLUE',col:'#2f7fe0',col2:'#1b4f96'},{name:'GREEN',col:'#2fbf67',col2:'#1b7a40'},{name:'ORANGE',col:'#ff8c1a',col2:'#b35a00'}
+];
+const AIRLINES=[
+  {n:'RED',c:'#e33b3b'},{n:'BLUE',c:'#2f7fe0'},{n:'GREEN',c:'#2fbf67'},{n:'ORANGE',c:'#ff8c1a'},
+  {n:'PURPLE',c:'#9a62f0'},{n:'PINK',c:'#ff5fa2'},{n:'YELLOW',c:'#ffd21f'},{n:'TEAL',c:'#1fc1b4'}
+];
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t, rnd=(a,b)=>a+Math.random()*(b-a);
+const approach=(v,t,r)=>v<t?Math.min(t,v+r):Math.max(t,v-r);
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);
+  c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+const fmt=n=>Math.round(n).toLocaleString();
+
+/* ============================================================
+   SOUND
+   ============================================================ */
+let AC=null,master=null,muted=false,noiseB=null,engG=null,engF=null,engO=null,engOG=null,pumpG=null,pumpF=null;
+function initAudio(){
+  if(AC){ AC.resume&&AC.resume(); return; }
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.55; master.connect(AC.destination);
+    noiseB=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=noiseB.getChannelData(0);
+    let l=0; for(let i=0;i<d.length;i++){ l=(l+.02*(Math.random()*2-1))/1.02; d[i]=l*3.2; }
+    const n=AC.createBufferSource(); n.buffer=noiseB; n.loop=true;
+    engF=AC.createBiquadFilter(); engF.type='lowpass'; engF.frequency.value=200; engG=AC.createGain(); engG.gain.value=0;
+    n.connect(engF); engF.connect(engG); engG.connect(master); n.start();
+    engO=AC.createOscillator(); engO.type='sawtooth'; engO.frequency.value=45; const of=AC.createBiquadFilter(); of.type='lowpass'; of.frequency.value=260;
+    engOG=AC.createGain(); engOG.gain.value=0; engO.connect(of); of.connect(engOG); engOG.connect(master); engO.start();
+    const wb=AC.createBuffer(1,AC.sampleRate,AC.sampleRate), wd=wb.getChannelData(0); for(let i=0;i<wd.length;i++) wd[i]=Math.random()*2-1;
+    const pn=AC.createBufferSource(); pn.buffer=wb; pn.loop=true;
+    pumpF=AC.createBiquadFilter(); pumpF.type='bandpass'; pumpF.frequency.value=500; pumpF.Q.value=3;
+    pumpG=AC.createGain(); pumpG.gain.value=0; pn.connect(pumpF); pumpF.connect(pumpG); pumpG.connect(master); pn.start();
+  }catch(e){ AC=null; }
+}
+function tone(f,dur,type,vol,delay,slide){
+  if(!AC||muted) return;
+  const t0=AC.currentTime+(delay||0), o=AC.createOscillator(), g=AC.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f,t0); if(slide) o.frequency.exponentialRampToValueAtTime(slide,t0+dur);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol||.2,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0+dur+.05);
+}
+function hiss(dur,vol,type,freq,delay){
+  if(!AC||muted) return;
+  const t0=AC.currentTime+(delay||0), n=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  const b=AC.createBuffer(1,Math.floor(AC.sampleRate*dur),AC.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+  n.buffer=b; f.type=type; f.frequency.value=freq; g.gain.value=vol; n.connect(f); f.connect(g); g.connect(master); n.start(t0);
+}
+const sfx={
+  click:()=>tone(1700,.04,'square',.07),
+  nope:()=>{tone(220,.12,'triangle',.18);tone(180,.16,'triangle',.15,.1);},
+  good:()=>{tone(660,.1,'triangle',.12);tone(990,.16,'triangle',.12,.08);},
+  crank:()=>{for(let i=0;i<6;i++){ hiss(.09,.5,'lowpass',300,i*.12); tone(70,.09,'square',.12,i*.12); } tone(55,.6,'sawtooth',.2,.75,40);},
+  horn:()=>{tone(330,.55,'square',.13);tone(415,.55,'square',.11);},
+  beep:()=>tone(1050,.22,'square',.07),
+  air:()=>hiss(.55,.35,'highpass',2500),
+  thunk:()=>{tone(110,.15,'sine',.4,0,60);tone(95,.15,'sine',.35,.18,55);},
+  clip:()=>{tone(2400,.03,'square',.1);tone(1800,.04,'square',.08,.05);},
+  ratchet:()=>tone(2600+Math.random()*400,.015,'square',.045),
+  clunk:()=>{tone(120,.2,'square',.18,0,60);hiss(.1,.5,'bandpass',1400);},
+  twist:()=>{tone(1900,.03,'square',.09);tone(2300,.03,'square',.09,.09);tone(1500,.05,'square',.1,.2);},
+  valve:()=>{tone(300,.15,'square',.12,0,140);hiss(.25,.3,'bandpass',900,.05);},
+  full:()=>{tone(1320,.15,'sine',.2);tone(1320,.15,'sine',.2,.2);tone(1760,.35,'sine',.2,.4);},
+  low:()=>{for(let i=0;i<3;i++){ tone(740,.14,'square',.1,i*.32); tone(520,.14,'square',.1,i*.32+.15); }},
+  star:()=>{[784,988,1319].forEach((f,i)=>tone(f,.2,'triangle',.13,i*.09));},
+  jet:()=>{ if(!AC||muted) return; const t0=AC.currentTime,n=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+    n.buffer=noiseB; n.loop=true; f.type='lowpass'; f.frequency.setValueAtTime(300,t0); f.frequency.linearRampToValueAtTime(1500,t0+1.5);
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(.3,t0+1.2); g.gain.linearRampToValueAtTime(0,t0+3.5);
+    n.connect(f); f.connect(g); g.connect(master); n.start(t0); n.stop(t0+3.6); },
+  fanfare:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.3,'triangle',.18,i*.12));}
+};
+function audioFrame(){
+  if(!AC) return;
+  const t=AC.currentTime, m=muted?0:1, run=T.engine?1:0, sp=Math.abs(T.v)/300, pumping=T.pumping?1:0;
+  engG.gain.setTargetAtTime(m*run*(.22+sp*.2+pumping*.08),t,.1);
+  engF.frequency.setTargetAtTime(180+sp*500+pumping*150,t,.1);
+  engO.frequency.setTargetAtTime(42+sp*40+pumping*10,t,.15);
+  engOG.gain.setTargetAtTime(m*run*.06,t,.1);
+  pumpG.gain.setTargetAtTime(m*pumping*.18,t,.08);
+  pumpF.frequency.setTargetAtTime(400+Math.sin(G.t*23)*150+Math.random()*120,t,.02);
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let truckIdx=0, G=null;
+const T={};
+function newGame(){
+  Object.assign(T,{x:560,v:0,dir:0,wheel:0,engine:false,starting:0,beacon:false,lights:false,brake:false,chocks:false,chockT:0,
+    ground:false,groundT:0,hoseOut:false,hoseExt:0,conn:false,locking:-1,valve:false,pumping:false,pumpHeld:false,
+    fuel:START_FUEL,meter:0,snap:null,beepT:0,ratchetT:0,puffT:0,wasLow:false});
+  G={t:0,cam:300,planes:0,gallons:0,gates:GATE_X.map((x,i)=>({i,x,plane:null,timer:0})),floats:[],puffs:[],bg:[],
+     clouds:Array.from({length:7},()=>({x:rnd(0,1600),y:rnd(190,300),s:rnd(.6,1.3)})),banner:null,used:{}};
+  G.gates[0].plane=makePlane(G.gates[0],true); G.gates[1].plane=makePlane(G.gates[1],true); G.gates[2].timer=14;
+  N.anim=null; N.drag=false;
+}
+function makePlane(g,instant){
+  let a,tries=0; do{ a=AIRLINES[Math.floor(Math.random()*AIRLINES.length)]; }while(G.used[a.n]&&tries++<20);
+  G.used[a.n]=1;
+  const cap=4000, need=Math.round(rnd(1200,2600)/50)*50;
+  return {g,x:g.x,col:a.c,name:a.n,cap,fuel:cap-need,state:instant?'parked':'arriving',t:instant?1:0,doneT:0};
+}
+const isLow=()=>T.fuel<LOW;
+function spots(){ const s=[{type:'depot',tx:DEPOT_TX}]; for(const g of G.gates) s.push({type:'gate',g,tx:g.x+SPOT_DX}); return s; }
+function spotHere(){ if(Math.abs(T.v)>.5||T.snap) return null; return spots().find(s=>Math.abs(T.x-s.tx)<1)||null; }
+function planeAt(sp){ return sp&&sp.type==='gate'&&sp.g.plane&&sp.g.plane.state==='parked'?sp.g.plane:null; }
+function hasJob(sp){
+  if(!sp) return false;
+  if(sp.type==='depot') return T.fuel<CAP-1;
+  const p=planeAt(sp); return !!p&&p.cap-p.fuel>.5&&T.fuel>.5;
+}
+const SETUP_GATE=['brake','chocks','ground','hose','connect','valve'];
+const SETUP_DEPOT=['brake','ground','connect','valve'];
+const isSet=k=>({brake:T.brake,chocks:T.chocks,ground:T.ground,hose:T.hoseOut,connect:T.conn,valve:T.valve})[k];
+function busy(){
+  if(T.starting>0) return 'Starting the engine…';
+  if(N.anim) return T.conn?'Unhooking…':'Hooking up…';
+  if(T.locking>=0) return 'Locking it on…';
+  if(Math.abs(T.hoseExt-(T.hoseOut?1:0))>.001) return T.hoseOut?'Unrolling the hose…':'Rolling the hose in…';
+  if(Math.abs(T.chockT-(T.chocks?1:0))>.001) return 'Moving the chocks…';
+  return null;
+}
+function next(){
+  if(!T.engine) return 'engine';
+  if(!T.beacon) return 'beacon';
+  const sp=spotHere();
+  if(!sp) return 'drive';
+  const list=sp.type==='depot'?SETUP_DEPOT:SETUP_GATE;
+  if(hasJob(sp)){ for(const k of list) if(!isSet(k)) return k; return 'pump'; }
+  for(let i=list.length-1;i>=0;i--) if(isSet(list[i])) return list[i];
+  return 'drive';
+}
+function canDrive(){ return T.engine&&T.beacon&&!T.brake&&!T.chocks&&!T.ground&&!T.hoseOut&&T.hoseExt<=0&&!T.conn&&!N.anim; }
+function driveBlockReason(){
+  if(!T.engine) return 'Turn the KEY first'; if(!T.beacon) return 'Turn on the BEACON first';
+  if(T.conn) return 'Disconnect the hose first'; if(T.hoseOut||T.hoseExt>0) return 'Reel the hose in first';
+  if(T.ground) return 'Unclip the ground wire first'; if(T.chocks) return 'Pick up the chocks first';
+  if(T.brake) return 'Release the parking brake first'; return '';
+}
+function waitingPlanes(){ return G.gates.filter(g=>g.plane&&g.plane.state==='parked'&&g.plane.cap-g.plane.fuel>.5); }
+function driveTarget(){
+  const waiting=waitingPlanes();
+  if(T.fuel<=.5||(!waiting.length&&T.fuel<CAP-1)) return {type:'depot',tx:DEPOT_TX};
+  if(!waiting.length) return null;
+  waiting.sort((a,b)=>Math.abs(a.x+SPOT_DX-T.x)-Math.abs(b.x+SPOT_DX-T.x));
+  return {type:'gate',g:waiting[0],tx:waiting[0].x+SPOT_DX};
+}
+function altTarget(){ const m=driveTarget(); return (isLow()&&m&&m.type!=='depot')?{type:'depot',tx:DEPOT_TX}:null; }
+
+const N={x:0,y:0,anim:null,drag:false};
+function connTarget(sp){ return sp.type==='depot'?{x:T.x-30,y:84}:{x:sp.g.x+PORT_DX,y:PORT_Y}; }
+function restPos(sp){
+  if(sp&&sp.type==='depot') return {x:GANTRY_X,y:122};
+  const e=T.hoseExt; return {x:lerp(T.x-86,T.x-128,e),y:lerp(52,12,e)};
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+const ctl={}; document.querySelectorAll('[data-ctl]').forEach(e=>ctl[e.dataset.ctl]=e);
+function nope(el,msg){ el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); sfx.nope(); if(msg) toast(msg); }
+const HINT={engine:'Turn the KEY first',beacon:'Turn on the BEACON first',brake:'Set the parking BRAKE first',chocks:'Put the CHOCKS down first',
+  ground:'Clip the GROUND wire first',hose:'Pull the HOSE out first',connect:'CONNECT the hose first',valve:'Open the VALVE first',pump:'Hold the PUMP button'};
+function press(k){
+  initAudio();
+  const el=ctl[k];
+  if(k==='horn'){ sfx.horn(); G.hornT=.6; return; }
+  if(k==='lights'){ T.lights=!T.lights; sfx.click(); return; }
+  if(k==='beacon'&&T.engine&&next()!=='beacon'){ if(T.pumping) return; T.beacon=!T.beacon; sfx.click(); return; }
+  const b=busy(); if(b){ nope(el); return; }
+  const n=next();
+  if(n!==k){
+    if(n==='drive') nope(el,spotHere()?'All done here — time to drive!':'Drive to a plane or the depot first');
+    else nope(el,(n==='hose'&&T.hoseOut)?'Reel the HOSE in first':HINT[n]&&!isSet(n)?HINT[n]:'Do the glowing one first');
+    return;
+  }
+  sfx.click();
+  const sp=spotHere();
+  switch(k){
+    case 'engine': T.starting=1.4; sfx.crank(); break;
+    case 'beacon': T.beacon=true; break;
+    case 'brake': T.brake=!T.brake; sfx.air(); break;
+    case 'chocks': T.chocks=!T.chocks; setTimeout(sfx.thunk,250); break;
+    case 'ground': T.ground=!T.ground; sfx.clip(); break;
+    case 'hose': T.hoseOut=!T.hoseOut; break;
+    case 'connect': doConnect(sp); break;
+    case 'valve': T.valve=!T.valve; sfx.valve(); break;
+  }
+}
+function doConnect(sp){
+  const tgt=connTarget(sp);
+  if(!T.conn){ N.anim={fx:N.x,fy:N.y,tx:tgt.x,ty:tgt.y,t:0,dur:.75,then:'lock'}; }
+  else { T.conn=false; const r=restPos(sp); N.anim={fx:tgt.x,fy:tgt.y,tx:r.x,ty:r.y,t:0,dur:.6,then:null}; sfx.twist(); }
+}
+/* v3: press-and-hold that survives long presses on phones/tablets.
+   - blocks the long-press menu, text callout and touch scrolling on the button
+   - only lets go when the finger actually lifts (ignores lost capture) */
+function holdBind(el,down,up){
+  let active=null;
+  const release=e=>{ if(active===null||(e&&e.pointerId!==undefined&&e.pointerId!==active)) return; active=null; up(); };
+  el.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    if(active!==null) return;
+    active=e.pointerId;
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    down();
+  });
+  el.addEventListener('pointerup',release);
+  el.addEventListener('pointercancel',release);
+  el.addEventListener('contextmenu',e=>{ e.preventDefault(); e.stopPropagation(); return false; });
+  el.addEventListener('touchstart',e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
+  el.addEventListener('touchend',e=>{ if(e.cancelable) e.preventDefault(); if(active!==null){ active=null; up(); } },{passive:false});
+  el.addEventListener('touchcancel',()=>{ if(active!==null){ active=null; up(); } });
+  el.addEventListener('click',e=>e.preventDefault());
+}
+function pedal(d){
+  initAudio();
+  if(!G) return;
+  if(d&&!canDrive()){ const el=ctl[d>0?'fwd':'back']; nope(el,busy()||driveBlockReason()); return; }
+  T.dir=d; T.snap=null;
+}
+holdBind(ctl.fwd,()=>pedal(1),()=>{ if(T.dir===1) T.dir=0; });
+holdBind(ctl.back,()=>pedal(-1),()=>{ if(T.dir===-1) T.dir=0; });
+holdBind(ctl.pump,()=>{
+  initAudio(); if(!G) return;
+  if(busy()||next()!=='pump'){ nope(ctl.pump,busy()?null:(HINT[next()]&&!isSet(next())?HINT[next()]:'Not now — follow the glowing control')); return; }
+  T.pumpHeld=true;
+},()=>{ T.pumpHeld=false; });
+for(const k of ['engine','beacon','lights','horn','brake','chocks','ground','hose','connect','valve']) ctl[k].addEventListener('click',()=>{ if(G) press(k); });
+document.addEventListener('keydown',e=>{
+  if(!G||e.repeat) return;
+  if(e.key==='ArrowRight') pedal(1); else if(e.key==='ArrowLeft') pedal(-1);
+  else if(e.code==='Space'){ e.preventDefault(); const n=next(); if(n==='pump'&&!busy()) T.pumpHeld=true; else if(n!=='drive') press(n); }
+});
+document.addEventListener('keyup',e=>{ if(!G) return; if(e.key==='ArrowRight'||e.key==='ArrowLeft') T.dir=0; if(e.code==='Space') T.pumpHeld=false; });
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+function update(dt){
+  G.t+=dt;
+  if(G.hornT>0) G.hornT-=dt;
+  if(T.starting>0){ T.starting-=dt; if(T.starting<=0){ T.starting=0; T.engine=true; sfx.good(); } }
+  if(T.dir&&canDrive()){
+    const max=T.dir>0?300:150;
+    T.v=approach(T.v,T.dir*max,dt*(Math.sign(T.v)===-T.dir?700:260));
+  } else {
+    if(T.dir) T.dir=0;
+    if(!T.snap&&Math.abs(T.v)>0){
+      const near=spots().filter(s=>Math.abs(s.tx-T.x)<95).sort((a,b)=>Math.abs(a.tx-T.x)-Math.abs(b.tx-T.x))[0];
+      if(near&&Math.abs(T.v)<320) T.snap=near; else T.v=approach(T.v,0,dt*600);
+    }
+    if(T.snap){
+      const d=T.snap.tx-T.x, want=clamp(d*3,-160,160);
+      T.v=approach(T.v,want,dt*500);
+      if(Math.abs(d)<.6&&Math.abs(T.v)<25){ T.x=T.snap.tx; T.v=0; T.snap=null; sfx.air(); }
+    }
+  }
+  T.x=clamp(T.x+T.v*dt,140,WORLDW-130);
+  if(T.x<=140||T.x>=WORLDW-130) T.v=0;
+  T.wheel+=T.v*dt/15;
+  if(T.v<-5){ T.beepT-=dt; if(T.beepT<=0){ T.beepT=.55; sfx.beep(); } } else T.beepT=0;
+  const prev=T.hoseExt; T.hoseExt=approach(T.hoseExt,T.hoseOut?1:0,dt*.9);
+  if(T.hoseExt!==prev){ T.ratchetT-=dt; if(T.ratchetT<=0){ T.ratchetT=.06; sfx.ratchet(); } }
+  T.chockT=approach(T.chockT,T.chocks?1:0,dt*2.2);
+  T.groundT=approach(T.groundT,T.ground?1:0,dt*3);
+  const sp=spotHere();
+  if(N.anim){
+    N.anim.t+=dt; const k=ease(clamp(N.anim.t/N.anim.dur,0,1));
+    N.x=lerp(N.anim.fx,N.anim.tx,k); N.y=lerp(N.anim.fy,N.anim.ty,k)+Math.sin(k*Math.PI)*22;
+    if(N.anim.t>=N.anim.dur){ const th=N.anim.then; N.anim=null; if(th==='lock'){ T.locking=0; sfx.clunk(); } }
+  } else if(!N.drag){
+    const p=(T.conn&&sp)?connTarget(sp):restPos(sp); N.x=p.x; N.y=p.y;
+  }
+  if(T.locking>=0){ T.locking+=dt; if(T.locking>=.45){ T.locking=-1; T.conn=true; T.meter=0; sfx.twist(); } }
+  T.pumping=false;
+  if(T.pumpHeld&&!busy()&&next()==='pump'&&sp){
+    if(sp.type==='depot'){
+      const a=Math.min(FILL_RATE*dt,CAP-T.fuel); T.fuel+=a; T.meter+=a; T.pumping=a>0;
+      if(T.fuel>=CAP-1){ T.fuel=CAP; T.pumpHeld=false; sfx.full(); banner('TRUCK FULL!'); }
+    } else {
+      const p=planeAt(sp), a=Math.min(PUMP_RATE*dt,T.fuel,p.cap-p.fuel);
+      p.fuel+=a; T.fuel-=a; T.meter+=a; G.gallons+=a; T.pumping=a>0;
+      if(p.cap-p.fuel<=.5){ p.fuel=p.cap; T.pumpHeld=false; sfx.full(); banner('PLANE FULL!'); }
+      else if(T.fuel<=.5){ T.fuel=0; T.pumpHeld=false; sfx.full(); banner('TRUCK EMPTY!'); toast('Go refill at the FUEL DEPOT'); }
+    }
+  }
+  if(!T.pumping&&next()!=='pump') T.pumpHeld=false;
+  const low=isLow();
+  if(low&&!T.wasLow&&T.fuel>.5){ sfx.low(); toast('LOW FUEL! Refill soon at the depot'); }
+  T.wasLow=low;
+  for(const g of G.gates){
+    const p=g.plane;
+    if(!p){ g.timer-=dt; if(g.timer<=0){ g.plane=makePlane(g,false); } continue; }
+    if(p.state==='arriving'){ p.t=Math.min(1,p.t+dt/3.2); if(p.t>=1){ p.state='parked'; sfx.good(); toast('A '+p.name+' plane needs fuel!'); } }
+    else if(p.state==='parked'&&p.cap-p.fuel<=.5){
+      const here=sp&&sp.type==='gate'&&sp.g===g;
+      if(!(here&&(T.hoseOut||T.hoseExt>0||T.conn))){ p.doneT+=dt; if(p.doneT>1.6){ p.state='leaving'; p.t=1; sfx.jet(); planeDone(p); } }
+    }
+    else if(p.state==='leaving'){ p.t-=dt/3.4; if(p.t<=0){ G.bg.push({x:g.x*.4+130,t:0,col:p.col}); delete G.used[p.name]; g.plane=null; g.timer=rnd(9,16); } }
+  }
+  for(const b of G.bg) b.t+=dt; G.bg=G.bg.filter(b=>b.t<7);
+  for(const c of G.clouds){ c.x+=dt*6*c.s; if(c.x>G.cam*.25+2600) c.x-=2900; }
+  if(T.engine){ T.puffT-=dt; if(T.puffT<=0){ T.puffT=.18-Math.abs(T.v)/3000; G.puffs.push({x:T.x+36,y:104,t:0,s:rnd(.7,1.2)}); } }
+  for(const p of G.puffs){ p.t+=dt; p.y+=dt*28; p.x-=T.v*dt*.3+dt*8; } G.puffs=G.puffs.filter(p=>p.t<1.4);
+  for(const f of G.floats) f.t+=dt; G.floats=G.floats.filter(f=>f.t<1.8);
+  if(G.banner){ G.banner.t+=dt; if(G.banner.t>2) G.banner=null; }
+}
+function planeDone(p){
+  G.planes++; sfx.star(); G.floats.push({x:p.g.x,y:250,text:'+1 STAR',t:0});
+  if(G.planes%5===0){ setTimeout(()=>{ banner(G.planes+' PLANES! SUPER FUELER!'); sfx.fanfare(); },700); }
+}
+function banner(t){ G.banner={text:t,t:0}; }
+
+/* ============================================================
+   RENDER — SCENE
+   ============================================================ */
+const sc=$('sceneCv'), cx=sc.getContext('2d');
+const V={s:1,gy:0,w:0,h:0,dpr:1,vw:0};
+function sizeCv(cv){ const r=cv.getBoundingClientRect(); if(r.width<2||r.height<2) return null;
+  const dpr=Math.min(2,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } return {w,h,dpr}; }
+function drawScene(dt){
+  const m=sizeCv(sc); if(!m) return;
+  const W=m.w,H=m.h, s=Math.min(H/290,W/470); V.s=s; V.w=W; V.h=H; V.dpr=m.dpr; V.gy=H-24*s; V.vw=W/s;
+  let tgt=T.x-V.vw*.45+T.v*.35;
+  const sp=G?spotHere():null; if(sp&&sp.type==='gate') tgt=sp.g.x-V.vw*.5-30; else if(sp) tgt=T.x-V.vw*.5;
+  G.cam=clamp(lerp(G.cam,tgt,Math.min(1,dt*3)),-30,WORLDW-V.vw+30);
+  const c=cx; c.setTransform(1,0,0,1,0,0);
+  const sky=c.createLinearGradient(0,0,0,V.gy); sky.addColorStop(0,'#5aa8ec'); sky.addColorStop(1,'#cfeaff');
+  c.fillStyle=sky; c.fillRect(0,0,W,H);
+  c.fillStyle='#fff7d6'; c.beginPath(); c.arc(W*.85,H*.14,22*s,0,6.3); c.fill();
+  const hz=V.gy-62*s;
+  c.fillStyle='#ffffffdd';
+  for(const cl of G.clouds){ const x=(cl.x-G.cam*.25)*s, y=V.gy-cl.y*s, r=30*s*cl.s; if(x<-80*s||x>W+80*s) continue;
+    c.beginPath(); c.ellipse(x,y,r,r*.42,0,0,6.3); c.ellipse(x-r*.5,y+r*.1,r*.55,r*.32,0,0,6.3); c.ellipse(x+r*.5,y+r*.08,r*.6,r*.34,0,0,6.3); c.fill(); }
+  const bx=x=>(x-G.cam*.4)*s;
+  c.fillStyle='#9fb6c9'; c.fillRect(0,hz-6*s,W,6*s);
+  for(let i=0;i<4;i++){ const x=bx(150+i*330); c.fillStyle='#b9c7d4'; c.fillRect(x,hz-46*s,240*s,46*s); c.fillStyle='#7fa9cc'; c.fillRect(x+6*s,hz-40*s,228*s,12*s); }
+  { const x=bx(560); c.fillStyle='#c8d2dc'; c.fillRect(x-5*s,hz-110*s,10*s,110*s); c.fillStyle='#55697d'; c.fillRect(x-15*s,hz-130*s,30*s,20*s); c.fillStyle='#9fd3ff'; c.fillRect(x-13*s,hz-127*s,26*s,8*s); }
+  for(const b of G.bg){
+    const k=b.t, x=bx(b.x+k*k*120), y=hz-4*s-Math.max(0,k-2.5)*Math.max(0,k-2.5)*12*s, a=clamp(7-k,0,1);
+    c.save(); c.globalAlpha=a; c.translate(x,y); c.rotate(-Math.min(.25,Math.max(0,k-2.5)*.1)); c.scale(.2*s,.2*s); planeBody(c,b.col,0,false); c.restore();
+  }
+  const ap=c.createLinearGradient(0,hz,0,H); ap.addColorStop(0,'#a9b2bc'); ap.addColorStop(1,'#c8ced5');
+  c.fillStyle=ap; c.fillRect(0,hz,W,H-hz);
+  c.strokeStyle='#00000014'; c.lineWidth=1*s;
+  for(let x=Math.floor(G.cam/120)*120;x<G.cam+V.vw+120;x+=120){ const a=(x-G.cam)*s; c.beginPath(); c.moveTo(a+(a-W/2)*-.15,hz); c.lineTo(a,H); c.stroke(); }
+  c.fillStyle='#00000012'; c.fillRect(0,V.gy+4*s,W,2*s);
+  c.setTransform(s,0,0,s,-G.cam*s,V.gy);
+  const tg=next()==='drive'?driveTarget():null, alt=next()==='drive'?altTarget():null;
+  for(const p of spots()){
+    const isT=tg&&Math.abs(tg.tx-p.tx)<1, isA=alt&&Math.abs(alt.tx-p.tx)<1;
+    c.fillStyle='#ffd23f'; c.fillRect(p.tx-100,8,200,3); c.fillRect(p.tx-100,8,3,18); c.fillRect(p.tx+97,8,3,18);
+    if(isT||isA){ c.globalAlpha=.35+.25*Math.sin(G.t*6); c.fillStyle=isA?'#ff9a3d':'#4ddc86'; c.fillRect(p.tx-100,4,200,24); c.globalAlpha=1; }
+    c.fillStyle='#e8c21a'; c.fillRect(p.tx+STAKE_DX-2,-16,4,16); c.fillStyle='#2fbf67'; c.beginPath(); c.arc(p.tx+STAKE_DX,-17,3.5,0,6.3); c.fill();
+  }
+  drawDepot(c);
+  for(const g of G.gates) if(g.plane) drawPlane(c,g.plane);
+  drawTruck(c);
+  drawHoses(c);
+  for(const g of G.gates) if(g.plane&&g.plane.state==='parked') drawSign(c,g.plane);
+  for(const p of G.puffs){ c.globalAlpha=.35*(1-p.t/1.4); c.fillStyle='#6b7480'; c.beginPath(); c.arc(p.x,-p.y,(4+p.t*10)*p.s,0,6.3); c.fill(); }
+  c.globalAlpha=1;
+  if(tg){ const ax=tg.tx, ay=-150-Math.sin(G.t*5)*8; c.fillStyle='#4ddc86'; c.beginPath(); c.moveTo(ax-16,ay-18); c.lineTo(ax+16,ay-18); c.lineTo(ax,ay); c.closePath(); c.fill(); }
+  if(alt){ const ax=alt.tx, ay=-205-Math.sin(G.t*5)*8; c.fillStyle='#ff9a3d'; c.beginPath(); c.moveTo(ax-16,ay-18); c.lineTo(ax+16,ay-18); c.lineTo(ax,ay); c.closePath(); c.fill();
+    c.font='900 18px Segoe UI, Arial'; c.textAlign='center'; c.lineWidth=4; c.strokeStyle='#0008'; c.strokeText('REFILL?',ax,ay-28); c.fillStyle='#ffb35a'; c.fillText('REFILL?',ax,ay-28); }
+  for(const f of G.floats){ c.globalAlpha=clamp(1.8-f.t,0,1); c.font='900 26px Segoe UI, Arial'; c.textAlign='center';
+    c.lineWidth=4; c.strokeStyle='#0008'; c.strokeText(f.text,f.x,-f.y-f.t*30); c.fillStyle='#ffd23f'; c.fillText(f.text,f.x,-f.y-f.t*30); }
+  c.globalAlpha=1;
+  c.setTransform(1,0,0,1,0,0);
+  if(G.banner){ const a=clamp(2-G.banner.t,0,1), k=1+.25*Math.max(0,1-G.banner.t*4);
+    c.save(); c.globalAlpha=a; c.translate(W/2,H*.36); c.scale(k,k); c.font='900 '+Math.round(Math.min(H*.12,W*.07))+'px Segoe UI, Arial';
+    c.textAlign='center'; c.textBaseline='middle'; c.lineWidth=H*.016; c.strokeStyle='#000a'; c.strokeText(G.banner.text,0,0);
+    c.fillStyle='#ffe38a'; c.fillText(G.banner.text,0,0); c.restore(); }
+  drawMinimap(c,W,H,m.dpr,tg,alt);
+}
+function drawMinimap(c,W,H,dpr,tg,alt){
+  const y=8*dpr, x0=12*dpr, x1=W-12*dpr, mx=x=>x0+(x/WORLDW)*(x1-x0);
+  c.fillStyle='#00000055'; rr(c,x0-6*dpr,y-5*dpr,x1-x0+12*dpr,12*dpr,6*dpr); c.fill();
+  c.strokeStyle='#ffffff55'; c.lineWidth=2*dpr; c.beginPath(); c.moveTo(x0,y+1*dpr); c.lineTo(x1,y+1*dpr); c.stroke();
+  c.fillStyle=isLow()&&Math.sin(G.t*8)>0?'#ff9a3d':'#e8eef5'; rr(c,mx(150)-6*dpr,y-4*dpr,12*dpr,9*dpr,3*dpr); c.fill();
+  for(const g of G.gates){ const p=g.plane; if(!p) continue;
+    c.fillStyle=p.col; c.beginPath(); c.arc(mx(g.x),y+1*dpr,4.5*dpr,0,6.3); c.fill();
+    if(p.state==='parked'&&p.cap-p.fuel>.5){ c.strokeStyle='#ffd23f'; c.lineWidth=2*dpr; c.beginPath(); c.arc(mx(g.x),y+1*dpr,(6.5+Math.sin(G.t*6))*dpr,0,6.3); c.stroke(); } }
+  c.fillStyle=TRUCKS[truckIdx].col; c.strokeStyle='#000'; c.lineWidth=1*dpr; rr(c,mx(T.x)-5*dpr,y-3*dpr,10*dpr,8*dpr,2*dpr); c.fill(); c.stroke();
+  if(tg){ c.fillStyle='#4ddc86'; const tx=mx(tg.tx); c.beginPath(); c.moveTo(tx-4*dpr,y-8*dpr); c.lineTo(tx+4*dpr,y-8*dpr); c.lineTo(tx,y-3*dpr); c.fill(); }
+  if(alt){ c.fillStyle='#ff9a3d'; const tx=mx(alt.tx); c.beginPath(); c.moveTo(tx-4*dpr,y-8*dpr); c.lineTo(tx+4*dpr,y-8*dpr); c.lineTo(tx,y-3*dpr); c.fill(); }
+}
+function drawDepot(c){
+  for(const [x,w,h] of [[20,110,175],[140,90,150]]){
+    const g=c.createLinearGradient(x,0,x+w,0); g.addColorStop(0,'#c9d1da'); g.addColorStop(.4,'#ffffff'); g.addColorStop(1,'#aab4bf');
+    c.fillStyle=g; rr(c,x,-h,w,h,10); c.fill();
+    c.fillStyle='#e33b3b'; c.fillRect(x,-h+30,w,10);
+  }
+  c.fillStyle='#e33b3b'; c.font='900 22px Segoe UI, Arial'; c.textAlign='center'; c.fillText('FUEL',75,-100);
+  c.fillStyle='#5b6675'; c.fillRect(330,-175,10,175); c.fillRect(GANTRY_X-8,-178,90,9);
+  c.fillStyle='#ffd23f'; c.fillRect(GANTRY_X-4,-170,8,6);
+}
+function planeBody(c,col,fuelFrac,pilot,wave){
+  c.fillStyle='#c5ccd5';
+  c.beginPath(); c.moveTo(-255,-180); c.lineTo(-300,-150); c.lineTo(-230,-150); c.lineTo(-200,-175); c.closePath(); c.fill();
+  c.fillStyle=col; c.beginPath(); c.moveTo(-250,-178); c.lineTo(-290,-268); c.lineTo(-250,-268); c.lineTo(-180,-182); c.closePath(); c.fill();
+  c.fillStyle='#5f6874'; c.fillRect(197,-110,6,96); c.fillRect(-23,-110,7,92);
+  c.fillStyle='#1d1d1d'; c.beginPath(); c.arc(200,-14,14,0,6.3); c.arc(-30,-16,16,0,6.3); c.arc(-8,-16,16,0,6.3); c.fill();
+  c.fillStyle='#777'; c.beginPath(); c.arc(200,-14,5,0,6.3); c.arc(-30,-16,6,0,6.3); c.arc(-8,-16,6,0,6.3); c.fill();
+  const fg=c.createLinearGradient(0,-190,0,-105); fg.addColorStop(0,'#ffffff'); fg.addColorStop(.6,'#e6ebf1'); fg.addColorStop(1,'#b5c0cc');
+  c.fillStyle=fg; c.beginPath(); c.moveTo(-275,-160); c.quadraticCurveTo(-260,-185,-200,-188); c.lineTo(190,-188);
+  c.quadraticCurveTo(265,-185,272,-140); c.quadraticCurveTo(262,-106,200,-105); c.lineTo(-150,-105); c.quadraticCurveTo(-240,-112,-275,-160); c.closePath(); c.fill();
+  c.fillStyle=col; c.fillRect(-240,-140,470,8);
+  c.fillStyle='#233246'; for(let x=-200;x<=170;x+=22){ c.beginPath(); c.arc(x,-158,4,0,6.3); c.fill(); }
+  c.beginPath(); c.moveTo(222,-170); c.lineTo(252,-162); c.lineTo(262,-150); c.lineTo(222,-152); c.closePath(); c.fill();
+  if(pilot){ c.fillStyle='#f0c9a0'; c.beginPath(); c.arc(238,-157,5,0,6.3); c.fill();
+    if(wave){ c.strokeStyle='#f0c9a0'; c.lineWidth=3; c.lineCap='round'; const a=Math.sin(G.t*12)*.5; c.beginPath(); c.moveTo(243,-154); c.lineTo(243+Math.cos(-1.2+a)*10,-154+Math.sin(-1.2+a)*10); c.stroke(); } }
+  c.strokeStyle='#8a96a4'; c.lineWidth=1.5; rr(c,175,-178,13,30,3); c.stroke(); rr(c,-190,-176,12,28,3); c.stroke();
+  c.fillStyle='#aab5c2'; c.fillRect(70,-122,24,14);
+  const eg=c.createLinearGradient(0,-112,0,-74); eg.addColorStop(0,'#eef1f5'); eg.addColorStop(1,'#9aa6b4');
+  c.fillStyle=eg; rr(c,40,-112,100,38,18); c.fill(); c.fillStyle=col; c.fillRect(48,-90,84,5);
+  c.fillStyle='#2a2f36'; c.beginPath(); c.ellipse(140,-93,5,16,0,0,6.3); c.fill();
+  c.fillStyle='#b9c3cf'; c.beginPath(); c.moveTo(115,-126); c.lineTo(10,-124); c.lineTo(-175,-104); c.lineTo(-140,-110); c.closePath(); c.fill();
+  c.fillStyle='#d4dbe3'; c.beginPath(); c.moveTo(115,-126); c.lineTo(-140,-110); c.lineTo(-135,-114); c.lineTo(100,-132); c.closePath(); c.fill();
+  c.fillStyle='#ffd23f'; c.beginPath(); c.arc(PORT_DX,-PORT_Y-2,5,0,6.3); c.fill(); c.fillStyle='#333'; c.beginPath(); c.arc(PORT_DX,-PORT_Y-2,2,0,6.3); c.fill();
+}
+function drawPlane(c,p){
+  let k=1,dx=0,dy=0,a=1;
+  if(p.state!=='parked'){ const e=ease(p.t); k=lerp(.33,1,e); dy=lerp(-62,0,e); a=clamp(p.t*3,0,1);
+    dx=p.state==='arriving'?lerp(-380,0,e):lerp(420,0,e); }
+  c.save(); c.globalAlpha=a; c.translate(p.x+dx,dy); c.scale(k,k);
+  planeBody(c,p.col,p.fuel/p.cap,true,p.state==='parked'&&p.cap-p.fuel<=.5);
+  c.restore();
+}
+function drawSign(c,p){
+  const x=p.x-40, y=-212, need=p.cap-p.fuel>.5, f=p.fuel/p.cap, pulse=need?1+Math.sin(G.t*5)*.06:1;
+  c.save(); c.translate(x,y); c.scale(pulse,pulse);
+  c.fillStyle=need?'#fff7d6':'#d8ffe6'; c.strokeStyle=need?'#ffb21f':'#2fbf67'; c.lineWidth=3; rr(c,-40,-26,80,50,11); c.fill(); c.stroke();
+  drawIcon(c,'drop',-20,-2,34,need?'#ff8c1a':'#2fbf67');
+  c.fillStyle='#2a313b'; rr(c,6,-22,26,42,5); c.fill();
+  const g=c.createLinearGradient(0,20,0,-20); g.addColorStop(0,'#ff8c1a'); g.addColorStop(1,'#ffd23f');
+  c.fillStyle=need?g:'#4ddc86'; rr(c,9,-19+36*(1-f),20,36*f,3); c.fill();
+  c.fillStyle='#ffffff'; c.fillRect(6,-22,26,2);
+  if(!need){ c.strokeStyle='#ffffff'; c.lineWidth=4; c.lineCap='round'; c.beginPath(); c.moveTo(12,0); c.lineTo(18,7); c.lineTo(27,-8); c.stroke(); }
+  c.restore();
+}
+function truckShape(c,TR,opt){
+  const o=opt||{}, wh=o.wheel||0;
+  c.fillStyle='#2b2f36'; c.fillRect(-100,-30,200,11);
+  for(const wx of [-65,-35,65]){
+    c.fillStyle='#1b1b1b'; c.beginPath(); c.arc(wx,-15,15,0,6.3); c.fill();
+    c.fillStyle='#9aa4b0'; c.beginPath(); c.arc(wx,-15,7,0,6.3); c.fill();
+    c.strokeStyle='#555'; c.lineWidth=2; c.beginPath(); c.moveTo(wx+Math.cos(wh)*6,-15+Math.sin(wh)*6); c.lineTo(wx-Math.cos(wh)*6,-15-Math.sin(wh)*6); c.stroke();
+  }
+  const tg=c.createLinearGradient(0,-80,0,-28); tg.addColorStop(0,'#ffffff'); tg.addColorStop(.25,TR.col); tg.addColorStop(1,TR.col2);
+  c.fillStyle=tg; rr(c,-96,-80,126,52,22); c.fill();
+  c.fillStyle='#ffffffcc'; c.fillRect(-90,-58,114,6);
+  c.fillStyle='#1d2430'; c.font='900 15px Segoe UI, Arial'; c.textAlign='center'; c.fillText('FUEL',-28,-35);
+  if(o.level!=null){ c.fillStyle='#1d2430'; rr(c,10,-74,10,38,3); c.fill();
+    c.fillStyle=o.low?(Math.sin((o.t||0)*8)>0?'#ff5f6a':'#ff9a3d'):'#ffb21f'; const h=34*o.level; c.fillRect(12,-38-h,6,h);
+    c.fillStyle='#ff5f6a'; c.fillRect(8,-38-34*(LOW/CAP),14,1.5); }
+  c.fillStyle='#5f6874'; c.fillRect(-36,-86,12,7);
+  c.fillStyle='#3a414c'; rr(c,-102,-74,30,46,5); c.fill();
+  c.fillStyle='#1f242b'; c.beginPath(); c.arc(-86,-52,13,0,6.3); c.fill();
+  c.strokeStyle='#4b4b4b'; c.lineWidth=3; for(let r=5;r<13;r+=3.5){ c.beginPath(); c.arc(-86,-52,r,0,6.3); c.stroke(); }
+  const cg=c.createLinearGradient(0,-84,0,-28); cg.addColorStop(0,'#ffffff'); cg.addColorStop(.2,TR.col); cg.addColorStop(1,TR.col2);
+  c.fillStyle=cg; c.beginPath(); c.moveTo(34,-28); c.lineTo(34,-82); c.lineTo(82,-82); c.quadraticCurveTo(98,-80,100,-60); c.lineTo(102,-28); c.closePath(); c.fill();
+  c.fillStyle='#9fd3ff'; c.beginPath(); c.moveTo(56,-76); c.lineTo(84,-76); c.quadraticCurveTo(94,-74,95,-56); c.lineTo(56,-56); c.closePath(); c.fill();
+  c.fillStyle='#f0c9a0'; c.beginPath(); c.arc(70,-63,6,0,6.3); c.fill(); c.fillStyle='#2f7fe0'; c.fillRect(64,-72,12,4);
+  c.fillStyle='#2b2f36'; c.fillRect(96,-34,8,10);
+  c.fillStyle=o.lights?'#fff6b0':'#d9dee5'; c.beginPath(); c.arc(101,-42,4,0,6.3); c.fill();
+  c.fillStyle=o.brake?'#ff3030':'#7a2a2a'; c.fillRect(-104,-44,5,8);
+  c.fillStyle='#8a939e'; c.fillRect(32,-104,5,24);
+  c.fillStyle=o.beacon&&Math.sin(o.t*12)>0?'#ffb21f':'#9a6a10'; c.beginPath(); c.arc(66,-84,6,Math.PI,0); c.fill();
+  if(o.low){ c.fillStyle=Math.sin((o.t||0)*8)>0?'#ff9a3d':'#5a3a10'; c.beginPath(); c.arc(90,-67,3.2,0,6.3); c.fill(); }
+}
+function drawTruck(c){
+  const TR=TRUCKS[truckIdx];
+  c.save(); c.translate(T.x,0);
+  if(T.lights){ const g=c.createLinearGradient(100,0,240,0); g.addColorStop(0,'#fff6b0aa'); g.addColorStop(1,'#fff6b000');
+    c.fillStyle=g; c.beginPath(); c.moveTo(102,-44); c.lineTo(240,-60); c.lineTo(240,-4); c.closePath(); c.fill(); }
+  if(T.beacon&&Math.sin(G.t*12)>0){ c.fillStyle='#ffb21f33'; c.beginPath(); c.arc(66,-86,26,0,6.3); c.fill(); }
+  truckShape(c,TR,{wheel:T.wheel,level:T.fuel/CAP,lights:T.lights,brake:T.brake,beacon:T.beacon,t:G.t,low:isLow()});
+  if(T.chockT>0){ const k=T.chockT, dy=(1-k)*-40; c.globalAlpha=k; c.fillStyle='#ffd23f'; c.strokeStyle='#8a6a00'; c.lineWidth=1.5;
+    for(const [wx,dir] of [[65,1],[-65,-1]]){ const bx=wx+dir*16; c.beginPath(); c.moveTo(bx,dy); c.lineTo(bx+dir*16,dy); c.lineTo(bx,dy-13); c.closePath(); c.fill(); c.stroke(); }
+    c.globalAlpha=1; }
+  if(G.hornT>0){ c.fillStyle='#fff'; c.font='900 20px Segoe UI'; c.textAlign='center'; c.globalAlpha=G.hornT/.6; c.fillText('HONK!',110,-90-(.6-G.hornT)*30); c.globalAlpha=1; }
+  if(isLow()&&T.fuel>.5&&Math.sin(G.t*6)>-.3){ c.font='900 17px Segoe UI, Arial'; c.textAlign='center'; c.lineWidth=4; c.strokeStyle='#0009';
+    c.strokeText('LOW FUEL',-28,-96); c.fillStyle='#ffb35a'; c.fillText('LOW FUEL',-28,-96); }
+  c.restore();
+  if(T.groundT>0){ const sp=spots().find(s=>Math.abs(T.x-s.tx)<1); if(sp){ const sx=T.x+100, sy=-26, ex=lerp(sx+10,sp.tx+STAKE_DX,T.groundT), ey=lerp(-20,-17,T.groundT);
+    c.strokeStyle='#2fbf67'; c.lineWidth=2.5; c.beginPath(); c.moveTo(sx,sy); c.quadraticCurveTo((sx+ex)/2,-2,ex,ey); c.stroke();
+    c.fillStyle='#d12a2a'; c.fillRect(ex-3,ey-4,6,8); } }
+}
+function hosePath(c,x0,y0,x1,y1,sag){ c.beginPath(); c.moveTo(x0,y0); c.quadraticCurveTo((x0+x1)/2,Math.max(y0,y1)+sag,x1,y1); }
+function drawHoses(c){
+  const sp=spotHere(), depotHere=sp&&sp.type==='depot';
+  const flow=T.pumping;
+  if(T.hoseExt>0||(!depotHere&&(T.conn||N.anim||N.drag))){
+    const x0=T.x-86, y0=-60, x1=N.x, y1=-N.y;
+    const sag=depotHere?0:(T.conn?18:40);
+    c.lineCap='round'; c.strokeStyle='#1c1f24'; c.lineWidth=T.valve&&T.conn?11:9; hosePath(c,x0,y0,x1,y1,sag); c.stroke();
+    c.strokeStyle='#ffffff30'; c.lineWidth=2.5; hosePath(c,x0,y0-2,x1,y1-2,sag); c.stroke();
+    if(flow&&!depotHere){ c.strokeStyle='#ffb21f'; c.lineWidth=3; c.setLineDash([6,10]); c.lineDashOffset=G.t*60; hosePath(c,x0,y0,x1,y1,sag); c.stroke(); c.setLineDash([]); }
+    if(!depotHere) drawNozzle(c,x1,y1);
+  }
+  { const hx=GANTRY_X, hy=-170, nx=depotHere?N.x:GANTRY_X, ny=depotHere?-N.y:-122;
+    c.lineCap='round'; c.strokeStyle='#1c1f24'; c.lineWidth=depotHere&&T.valve&&T.conn?11:9; hosePath(c,hx,hy,nx,ny,8); c.stroke();
+    if(flow&&depotHere){ c.strokeStyle='#ffb21f'; c.lineWidth=3; c.setLineDash([6,10]); c.lineDashOffset=-G.t*60; hosePath(c,hx,hy,nx,ny,8); c.stroke(); c.setLineDash([]); }
+    drawNozzle(c,nx,ny,true); }
+  if(sp&&next()==='connect'&&!T.conn&&!busy()){
+    const tg=connTarget(sp), r=12+Math.sin(G.t*6)*3;
+    c.strokeStyle='#ffd23f'; c.lineWidth=3; c.beginPath(); c.arc(tg.x,-tg.y,r,0,6.3); c.stroke();
+    if(!N.drag){ c.setLineDash([5,7]); c.lineDashOffset=-G.t*30; c.beginPath(); c.moveTo(N.x,-N.y); c.lineTo(tg.x,-tg.y); c.stroke(); c.setLineDash([]); }
+  }
+}
+function drawNozzle(c,x,y,depot){
+  const lockSpin=T.locking>=0?T.locking/.45:T.conn?1:0;
+  c.save(); c.translate(x,y);
+  c.scale(1.4,1.4); c.fillStyle='#8a939e'; rr(c,-7,-4,14,14,3); c.fill();
+  c.fillStyle=depot?'#e33b3b':'#ffd23f'; c.save(); c.rotate(lockSpin*Math.PI/2); c.fillRect(-11,-2,22,5); c.restore();
+  c.fillStyle='#4b525c'; c.beginPath(); c.arc(0,0,4,0,6.3); c.fill();
+  c.restore();
+}
+function toWorld(e){ const r=sc.getBoundingClientRect(); const sx=(e.clientX-r.left)*V.dpr, sy=(e.clientY-r.top)*V.dpr; return {x:G.cam+sx/V.s,y:(V.gy-sy)/V.s}; }
+sc.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(!G) return; initAudio();
+  const sp=spotHere(); if(!sp||next()!=='connect'||T.conn||busy()) return;
+  const w=toWorld(e); if(Math.hypot(w.x-N.x,w.y-N.y)>60) return;
+  N.drag=true; try{ sc.setPointerCapture(e.pointerId); }catch(_){} sfx.click();
+});
+sc.addEventListener('pointermove',e=>{ if(!N.drag) return; const w=toWorld(e); N.x=w.x; N.y=clamp(w.y,4,200); });
+function dragEnd(){
+  if(!N.drag) return; N.drag=false;
+  const sp=spotHere(); if(!sp) return;
+  const tg=connTarget(sp);
+  if(Math.hypot(N.x-tg.x,N.y-tg.y)<45){ N.anim={fx:N.x,fy:N.y,tx:tg.x,ty:tg.y,t:0,dur:.15,then:'lock'}; }
+  else { const r=restPos(sp); N.anim={fx:N.x,fy:N.y,tx:r.x,ty:r.y,t:0,dur:.45,then:null}; toast('Bring it to the yellow circle!'); }
+}
+sc.addEventListener('pointerup',dragEnd); sc.addEventListener('pointercancel',dragEnd);
+sc.addEventListener('touchstart',e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
+
+/* ============================================================
+   GAUGES
+   ============================================================ */
+const gc=$('gaugeCv'), gx=gc.getContext('2d');
+function drawGauges(){
+  const m=sizeCv(gc); if(!m) return;
+  const W=m.w,H=m.h,c=gx,d=m.dpr; c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+  const vert=H>W*.8, cells=[];
+  if(vert) cells.push({x:0,y:0,w:W/2,h:H*.66},{x:W/2,y:0,w:W/2,h:H*.66},{x:0,y:H*.66,w:W,h:H*.34});
+  else for(let i=0;i<3;i++) cells.push({x:i*W/3,y:0,w:W/3,h:H});
+  const sp=spotHere(), p=planeAt(sp)||(sp&&sp.type==='gate'&&sp.g.plane&&sp.g.plane.state!=='arriving'?sp.g.plane:null);
+  const low=isLow();
+  tankGauge(c,cells[0],'MY TRUCK',T.fuel/CAP,T.fuel<=.5?'EMPTY!':low?'LOW! '+fmt(T.fuel):fmt(T.fuel)+' gal',TRUCKS[truckIdx].col,low,d,false,LOW/CAP);
+  if(p){ const need=p.cap-p.fuel, short=need>.5&&T.fuel<need;
+    tankGauge(c,cells[1],'PLANE',p.fuel/p.cap,need>.5?(short?'NOT ENOUGH':'needs '+fmt(need)):'FULL!',p.col,short,d); }
+  else if(sp&&sp.type==='depot') tankGauge(c,cells[1],'DEPOT',1,'lots!','#e33b3b',false,d);
+  else tankGauge(c,cells[1],'PLANE',0,'—','#56657a',false,d,true);
+  meter(c,cells[2],d);
+}
+function lbl(c,t,x,y,size,col,align){ c.font='900 '+Math.round(size)+'px Segoe UI, Arial'; c.fillStyle=col; c.textAlign=align||'center'; c.textBaseline='middle'; c.fillText(t,x,y); }
+function tankGauge(c,cell,title,f,txt,col,warn,d,empty,lowMark){
+  const pad=6*d, fs=Math.max(8*d,Math.min(cell.h*.1,cell.w*.09,12*d));
+  lbl(c,title,cell.x+cell.w/2,cell.y+pad+fs*.6,fs,'#8d9db0');
+  const th=cell.h-pad*2-fs*2.6, tw=Math.min(cell.w*.5,th*.75), tx=cell.x+(cell.w-tw)/2, ty=cell.y+pad+fs*1.3;
+  if(empty){ c.globalAlpha=.4; }
+  c.fillStyle='#070a0e'; rr(c,tx,ty,tw,th,Math.min(tw,th)*.2); c.fill();
+  c.save(); rr(c,tx,ty,tw,th,Math.min(tw,th)*.2); c.clip();
+  const h=th*clamp(f,0,1), wave=Math.sin(G.t*4)*2*d;
+  const g=c.createLinearGradient(0,ty+th,0,ty);
+  if(warn&&lowMark){ g.addColorStop(0,'#ff5f6a'); g.addColorStop(1,'#ff9a3d'); } else { g.addColorStop(0,'#ff8c1a'); g.addColorStop(1,'#ffd23f'); }
+  c.fillStyle=g; c.beginPath(); c.moveTo(tx,ty+th); c.lineTo(tx,ty+th-h+wave); c.quadraticCurveTo(tx+tw/2,ty+th-h-wave,tx+tw,ty+th-h+wave); c.lineTo(tx+tw,ty+th); c.closePath(); c.fill();
+  c.strokeStyle='#ffffff30'; c.lineWidth=1*d; for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(tx,ty+th*i/4); c.lineTo(tx+tw*.3,ty+th*i/4); c.stroke(); }
+  if(lowMark){ const ly=ty+th*(1-lowMark); c.strokeStyle='#ff5f6a'; c.lineWidth=2*d; c.setLineDash([4*d,3*d]); c.beginPath(); c.moveTo(tx,ly); c.lineTo(tx+tw,ly); c.stroke(); c.setLineDash([]); }
+  c.restore();
+  const flash=warn&&Math.sin(G.t*8)>0;
+  c.strokeStyle=flash?'#ff5f6a':(warn?'#ff9a3d':col); c.lineWidth=3*d; rr(c,tx,ty,tw,th,Math.min(tw,th)*.2); c.stroke();
+  if(lowMark&&warn) drawIcon(c,'warn',tx+tw/2,ty+th*.28,Math.min(tw*.6,th*.3),flash?'#ff5f6a':'#ffb35a');
+  c.globalAlpha=1;
+  lbl(c,txt,cell.x+cell.w/2,ty+th+fs*.85,fs*1.05,warn?'#ff9a3d':'#e8f0fa');
+}
+function meter(c,cell,d){
+  const pad=6*d, fs=Math.max(8*d,Math.min(cell.h*.1,cell.w*.09,12*d));
+  lbl(c,'METER',cell.x+cell.w/2,cell.y+pad+fs*.6,fs,'#8d9db0');
+  const bw=cell.w*.86, bh=Math.min(cell.h*.34,bw*.3), bx=cell.x+(cell.w-bw)/2, by=cell.y+cell.h/2-bh/2+fs*.2;
+  c.fillStyle='#050807'; rr(c,bx,by,bw,bh,6*d); c.fill(); c.strokeStyle='#3a4452'; c.lineWidth=2*d; c.stroke();
+  const digits=String(Math.floor(T.meter)).padStart(5,'0').slice(-5), dw=bw/5;
+  for(let i=0;i<5;i++){ c.fillStyle='#0f1a12'; rr(c,bx+i*dw+2*d,by+3*d,dw-4*d,bh-6*d,3*d); c.fill(); lbl(c,digits[i],bx+i*dw+dw/2,by+bh/2+1,bh*.7,T.pumping?'#7dffb0':'#3fbf74'); }
+  lbl(c,'GALLONS',cell.x+cell.w/2,by+bh+fs*.9,fs*.9,'#8d9db0');
+  const r=Math.min(cell.w*.08,cell.h*.1), wx=cell.x+cell.w/2, wy=by-r-4*d; if(wy-r>cell.y+fs*1.4){
+    c.strokeStyle=T.pumping?'#ffb21f':'#3a4452'; c.lineWidth=2.5*d; c.beginPath(); c.arc(wx,wy,r,0,6.3); c.stroke();
+    const a=G.flowA||0; for(let i=0;i<3;i++){ const q=a+i*2.09; c.beginPath(); c.moveTo(wx,wy); c.lineTo(wx+Math.cos(q)*r,wy+Math.sin(q)*r); c.stroke(); } }
+}
+
+/* ============================================================
+   UI SYNC
+   ============================================================ */
+const ptr=$('pointer'); ptr.innerHTML=svg('tap');
+const ST=(k,t)=>{ const e=ctl[k].querySelector('.st'); if(e) e.textContent=t; };
+function sayFor(n){
+  const sp=spotHere(), depot=sp&&sp.type==='depot', b=busy();
+  if(b) return [b,'wait'];
+  if(T.pumping) return [(depot?'Filling my truck… ':'Pumping… ')+fmt(T.meter)+' gallons','go'];
+  const p=planeAt(sp), short=p&&p.cap-p.fuel>.5&&T.fuel<p.cap-p.fuel;
+  if(short&&(n==='brake'&&!T.brake)) return ['Not enough to fill it! Fuel it anyway, or go REFILL','low'];
+  switch(n){
+    case 'engine': return ['Turn the KEY to start your truck','go'];
+    case 'beacon': return ['Turn on the BEACON light','go'];
+    case 'drive':{
+      const tg=driveTarget(), alt=altTarget();
+      if(T.snap) return ['Parking…','wait'];
+      if(!tg) return ['All planes are full! Wait for the next plane','wait'];
+      if(Math.abs(tg.tx-T.x)<95&&T.dir) return ['LET GO to park!','go'];
+      const dir=tg.tx>T.x?'GO ▶':'◀ BACK';
+      if(alt) return ['LOW FUEL! '+tg.g.plane.name+' plane '+dir+' or REFILL ◀','low'];
+      return [tg.type==='depot'?(T.fuel<=.5?'Truck is empty! ':'')+'Drive to the FUEL DEPOT  '+dir:'Drive to the '+tg.g.plane.name+' plane  '+dir,'go'];
+    }
+    case 'brake': return [T.brake?'Release the parking BRAKE':'Set the parking BRAKE','go'];
+    case 'chocks': return [T.chocks?'Pick up the wheel CHOCKS':'Put the wheel CHOCKS down','go'];
+    case 'ground': return [T.ground?'Unclip the GROUND wire':'Clip on the GROUND wire','go'];
+    case 'hose': return [T.hoseOut?'Reel the HOSE back in':'Pull the HOSE out','go'];
+    case 'connect': return [T.conn?'DISCONNECT the hose':depot?'CONNECT the fuel arm to your truck':'CONNECT the hose — tap or drag it!','go'];
+    case 'valve': return [T.valve?'CLOSE the VALVE':'OPEN the VALVE','go'];
+    case 'pump': return [depot?'HOLD the PUMP to fill your truck!':short?'HOLD the PUMP! (you will run out before it is full)':'HOLD the PUMP button!',short?'low':'go'];
+  }
+  return ['',''];
+}
+function syncUI(){
+  const n=next(), b=busy();
+  const [txt,cls]=sayFor(n); const sEl=$('sayTxt'); sEl.textContent=txt; sEl.className=cls;
+  const on=(k,v)=>ctl[k].classList.toggle('on',!!v);
+  on('engine',T.engine); ctl.engine.classList.toggle('busy',T.starting>0);
+  on('beacon',T.beacon); on('lights',T.lights); on('brake',T.brake); ST('brake',T.brake?'ON':'OFF');
+  on('chocks',T.chocks); ST('chocks',T.chocks?'DOWN':'UP');
+  on('ground',T.ground); ST('ground',T.ground?'ON':'OFF');
+  on('hose',T.hoseOut); ST('hose',T.hoseOut?'OUT':'IN'); ctl.hose.classList.toggle('busy',Math.abs(T.hoseExt-(T.hoseOut?1:0))>.001);
+  on('connect',T.conn); ST('connect',T.conn?'LOCKED':T.locking>=0||N.anim?'…':'OFF'); ctl.connect.classList.toggle('busy',!!N.anim||T.locking>=0);
+  on('valve',T.valve); ST('valve',T.valve?'OPEN':'SHUT');
+  const pumpOk=n==='pump'&&!b, sp=spotHere();
+  ctl.pump.classList.toggle('off',!pumpOk&&!T.pumping);
+  ctl.pump.classList.toggle('held',T.pumpHeld); ctl.pump.classList.toggle('flow',T.pumping);
+  $('pumpLbl').textContent=T.pumping?'PUMPING':sp&&sp.type==='depot'?'HOLD TO FILL':'HOLD';
+  const cd=canDrive(); ctl.fwd.classList.toggle('blocked',!cd); ctl.back.classList.toggle('blocked',!cd);
+  ctl.fwd.classList.toggle('held',T.dir===1); ctl.back.classList.toggle('held',T.dir===-1);
+  const lamp=$('lowLamp'), p=planeAt(sp), short=p&&p.cap-p.fuel>.5&&T.fuel<p.cap-p.fuel;
+  lamp.className=T.fuel<=.5?'empty':(isLow()||short)?'on':'';
+  $('lowTxt').textContent=T.fuel<=.5?'EMPTY':short&&!isLow()?'NOT ENOUGH':'LOW FUEL';
+  let want=null, alt=null;
+  if(!b&&!T.pumping){
+    if(n==='drive'){ const tg=driveTarget(); if(tg&&!T.snap){ want=Math.abs(tg.tx-T.x)<95&&T.dir?null:(tg.tx>T.x?'fwd':'back');
+        const a=altTarget(); if(a&&!T.dir){ const ad=a.tx>T.x?'fwd':'back'; if(ad!==want) alt=ad; } } }
+    else want=n;
+  }
+  for(const k in ctl){ ctl[k].classList.toggle('want',k===want); ctl[k].classList.toggle('alt',k===alt); }
+  if(want){
+    const r=ctl[want].getBoundingClientRect(); let top=r.top-36;
+    if(top<4){ top=r.bottom+2; }
+    ptr.style.display='block'; ptr.style.left=(r.left+r.width/2-17)+'px'; ptr.style.top=top+'px';
+  } else ptr.style.display='none';
+  $('sPl').textContent=G.planes; $('sGa').textContent=fmt(G.gallons);
+}
+let toastT=null;
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2200); }
+
+function buildTitle(){
+  $('truckPick').innerHTML=TRUCKS.map((t,i)=>'<button class="pc'+(i===truckIdx?' sel':'')+'" type="button"><canvas></canvas><span style="color:'+t.col+'">'+t.name+'</span></button>').join('');
+  $('truckPick').querySelectorAll('.pc').forEach((b,i)=>{
+    b.addEventListener('click',()=>{ truckIdx=i; initAudio(); sfx.horn(); buildTitle(); });
+    const cv=b.querySelector('canvas'), m=sizeCv(cv); if(!m) return; const c=cv.getContext('2d'); c.clearRect(0,0,m.w,m.h);
+    const k=Math.min(m.w/220,m.h/110); c.setTransform(k,0,0,k,m.w/2,m.h-6*m.dpr); truckShape(c,TRUCKS[i],{level:.7,t:0});
+  });
+}
+$('startBtn').addEventListener('click',()=>{ initAudio(); newGame(); $('title').classList.add('hidden'); });
+$('mute').innerHTML=svg('sound');
+$('mute').addEventListener('click',()=>{ muted=!muted; $('mute').innerHTML=svg(muted?'mute':'sound'); initAudio(); });
+let last=performance.now();
+function frame(now){
+  const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=now;
+  if(G){ update(dt); G.flowA=(G.flowA||0)+(T.pumping?dt*14:0); drawScene(dt); drawGauges(); syncUI(); audioFrame(); }
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize',buildTitle);
+newGame(); buildTitle();
+requestAnimationFrame(frame);
+window.__FT={get G(){return G},T,N,next,press,busy,update,spotHere,driveTarget,altTarget,pedal,canDrive,CAP,LOW};
+})();
+</script>
+</body>
+</html>

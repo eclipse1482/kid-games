@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a1b33">
+<title>Scoop Street — Ice Cream Truck</title>
+<style>
+:root{
+  --bg:#f7eef6; --panel:#fffdfa; --panel2:#fdf4ec; --line:#e6d3dd;
+  --text:#4a3350; --dim:#9c86a6; --pink:#ff8fb8; --mint:#7fd9c4; --good:#5cbd8a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",system-ui,Arial,sans-serif}
+body{height:100dvh;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;cursor:pointer}
+*::-webkit-scrollbar{width:6px;height:6px}
+*::-webkit-scrollbar-thumb{background:#00000018;border-radius:6px}
+*{scrollbar-width:thin;scrollbar-color:#00000018 transparent}
+
+#app{height:100dvh;display:flex;flex-direction:column;gap:7px;
+  width:100%;max-width:1240px;margin:0 auto;
+  padding:max(7px,env(safe-area-inset-top)) max(7px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left))}
+
+/* ---------- header ---------- */
+#hud{flex:none;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+  padding:7px 13px;background:linear-gradient(180deg,#ffffff,#fff4f8);
+  border:2px solid var(--line);border-radius:15px;box-shadow:0 3px 0 #e8d5e0}
+.brand{font-weight:900;letter-spacing:.5px;font-size:14px;color:var(--pink)}
+.brand span{color:var(--text);opacity:.6}
+#dayLine{text-align:center;font-size:11px;font-weight:800;color:var(--dim);letter-spacing:.5px}
+#dayLine b{color:var(--text);font-size:13px}
+#hearts{display:flex;align-items:center;gap:4px;font-weight:900;font-size:15px;color:#ff6f9d}
+
+/* ---------- main ---------- */
+#views{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 300px;gap:7px}
+#sceneWrap{position:relative;min-height:0;border:2px solid var(--line);border-radius:16px;
+  overflow:hidden;background:#ffeef6;box-shadow:0 3px 0 #e8d5e0}
+#sceneCv{display:block;width:100%;height:100%}
+#floatLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.float{position:absolute;font-weight:900;font-size:21px;animation:rise 1.5s ease-out forwards}
+@keyframes rise{0%{opacity:0;transform:translateY(10px) scale(.7)}
+  20%{opacity:1;transform:translateY(0) scale(1.1)}
+  100%{opacity:0;transform:translateY(-66px) scale(1)}}
+
+/* ---------- order card (a PICTURE, not words) ----------
+   Laid out as a GRID in every mode so there is never leftover
+   space between the picture and the steps. */
+#orderPanel{min-height:0;display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto;
+  gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:16px;
+  padding:9px 10px;box-shadow:0 3px 0 #e8d5e0;overflow:hidden}
+#orderHead{display:flex;align-items:center;gap:7px;min-width:0}
+#orderHead .headLeft{min-width:0;flex:1 1 auto}
+#orderHead .who{font-weight:900;font-size:13px;letter-spacing:.2px;line-height:1.1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#orderHead .lbl{font-size:9px;font-weight:900;letter-spacing:1px;color:var(--dim)}
+#orderHead .headTag{flex:none;font-size:8px;font-weight:900;letter-spacing:.8px;
+  color:var(--dim);background:var(--panel2);border:1.5px solid var(--line);
+  border-radius:8px;padding:3px 6px}
+#wantBox{position:relative;min-height:0;min-width:0;border-radius:13px;
+  background:linear-gradient(180deg,#fff9fc,#ffeef5);border:2px dashed #f0c7dc;
+  overflow:hidden}
+#wantBox.matched{border-style:solid;border-color:var(--good);
+  background:linear-gradient(180deg,#f0fbf5,#e2f7ec)}
+#wantCv{display:block;width:100%;height:100%}
+#matchBadge{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  pointer-events:none}
+#wantBox.matched #matchBadge{display:flex}
+#matchBadge span{font-size:clamp(34px,9vmin,58px);font-weight:900;color:var(--good);
+  text-shadow:0 3px 0 #ffffff,0 0 22px #5cbd8a66;animation:pop .4s ease-out}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+
+#stepRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;min-height:0}
+.stepCell{position:relative;border:2px solid var(--line);border-radius:11px;
+  background:var(--panel2);padding:4px 2px 3px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0}
+.stepCell canvas{display:block;width:100%;height:36px;min-height:0}
+.stepCell .tick{position:absolute;top:-6px;right:-5px;width:19px;height:19px;border-radius:50%;
+  background:var(--good);color:#fff;font-size:12px;font-weight:900;display:none;
+  align-items:center;justify-content:center;box-shadow:0 2px 0 #3f9a6d}
+.stepCell.ok{border-color:var(--good);background:#eefaf3}
+.stepCell.ok .tick{display:flex}
+/* the step tiles double as the category picker, so the active one
+   gets a ring that composes with the green "matched" state */
+.stepCell{cursor:pointer}
+.stepCell.on{outline:3px solid var(--pink);outline-offset:1px}
+.stepCell:hover{border-color:var(--pink)}
+.stepCell .cap{font-size:8px;font-weight:900;letter-spacing:.4px;color:var(--dim);flex:none}
+
+/* ---------- palette ---------- */
+#palette{flex:none;background:var(--panel);border:2px solid var(--line);border-radius:16px;
+  padding:8px 10px;box-shadow:0 3px 0 #e8d5e0}
+
+#itemRow{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;
+  margin-bottom:7px}
+.item{border:2px solid var(--line);border-radius:12px;background:var(--panel2);
+  padding:4px 2px 3px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:.1s;min-width:0}
+.item canvas{display:block;width:100%;height:46px}
+.item .nm{font-size:8.5px;font-weight:900;color:var(--text);text-align:center;
+  line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.item:hover{border-color:var(--pink);transform:translateY(-2px)}
+.item:active{transform:translateY(1px)}
+.item.picked{border-color:var(--mint);background:#e9faf5;box-shadow:0 2px 0 #9fd9c9}
+
+#actions{display:grid;grid-template-columns:auto auto 1fr;gap:6px}
+.act{padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--panel2);
+  font-weight:900;font-size:11.5px;letter-spacing:.4px;color:var(--dim);
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.act .ico{width:17px;height:17px;flex:none}
+.act:hover{border-color:var(--pink);color:var(--text)}
+.act:disabled{opacity:.45;cursor:not-allowed}
+#serveBtn{border:0;background:linear-gradient(180deg,#ffa8c8,#ff7aa8);color:#fff;
+  font-size:14px;letter-spacing:.8px;box-shadow:0 3px 0 #e06e97}
+#serveBtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #e06e97}
+#serveBtn:disabled{background:#eadfe6;color:#b9a6b6;box-shadow:0 3px 0 #ddd0d9}
+#serveBtn.ready{animation:glow 1.1s infinite}
+@keyframes glow{50%{box-shadow:0 3px 0 #e06e97,0 0 22px 4px #ff8fb877}}
+
+/* ---------- overlays ---------- */
+.overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:13px;
+  background:#2a1b33cc;backdrop-filter:blur(4px)}
+.overlay.hidden{display:none}
+.card{width:min(500px,100%);max-height:calc(100dvh - 26px);overflow:auto;padding:18px 20px;
+  background:linear-gradient(180deg,#fffdfa,#fff2f7);border:3px solid #ffd3e3;
+  border-radius:20px;box-shadow:0 18px 50px #0006;text-align:center}
+.card h1{margin:0;font-size:clamp(20px,5.2vw,27px);letter-spacing:.5px;color:var(--pink)}
+.card .sub{color:var(--dim);font-size:12px;margin:5px 0 12px;line-height:1.45}
+.secTitle{font-size:9.5px;font-weight:900;letter-spacing:1.2px;color:var(--dim);margin:12px 0 6px}
+.truckPick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tp{border:3px solid transparent;border-radius:13px;background:var(--panel2);padding:6px 3px;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+.tp.on{border-color:var(--pink);background:#fff0f6}
+.tp canvas{display:block;width:100%;height:40px}
+.tp .tn{font-size:8.5px;font-weight:900;color:var(--text)}
+.howRow{display:flex;gap:9px;align-items:center;text-align:left;font-size:11.5px;
+  color:var(--dim);margin-bottom:8px;line-height:1.35}
+.howRow b{color:var(--text)}
+.howIco{width:44px;height:44px;flex:none;border-radius:11px;background:var(--panel2);
+  border:2px solid var(--line)}
+.goBtn{width:100%;margin-top:14px;padding:13px;border:0;border-radius:13px;font-weight:900;
+  font-size:14.5px;letter-spacing:.8px;color:#fff;
+  background:linear-gradient(180deg,#ffa8c8,#ff7aa8);box-shadow:0 4px 0 #e06e97}
+.goBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #e06e97}
+.statGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:11px 0}
+.stat{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:8px 4px}
+.stat .sv{font-size:21px;font-weight:900;color:var(--pink)}
+.stat .sl{font-size:8px;font-weight:900;letter-spacing:.6px;color:var(--dim);margin-top:2px}
+
+/* =========================================================
+   PORTRAIT / NARROW
+   The order card becomes: picture on the LEFT, the four steps
+   as a 2x2 block on the RIGHT. Both stretch to fill the card,
+   so there is no dead gap and nothing is clipped.
+   ========================================================= */
+@media (max-width:920px){ #views{grid-template-columns:1fr 250px} }
+
+@media (max-width:720px){
+  #views{grid-template-columns:minmax(0,1fr);
+         grid-template-rows:minmax(78px,0.30fr) minmax(0,1fr)}
+  #sceneWrap{min-height:78px}
+
+  #orderPanel{
+    grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr);
+    padding:8px 9px;gap:7px}
+  #orderHead{grid-column:1 / -1;grid-row:1}
+  #wantBox{grid-column:1;grid-row:2}
+  #stepRow{grid-column:2;grid-row:2;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));gap:5px}
+  /* canvases stretch to their cell instead of a fixed pixel height */
+  .stepCell{padding:3px 2px}
+  .stepCell canvas{flex:1 1 0;height:auto;min-height:0}
+  .stepCell .cap{font-size:7.5px}
+
+  .item canvas{height:52px}
+}
+/* taller phones: give the window a touch more room */
+@media (max-width:720px) and (min-height:780px){
+  #views{grid-template-rows:minmax(96px,0.34fr) minmax(0,1fr)}
+}
+/* short phones: window shrinks further, step captions drop out */
+@media (max-width:720px) and (max-height:680px){
+  #views{grid-template-rows:minmax(66px,0.24fr) minmax(0,1fr)}
+  #sceneWrap{min-height:66px}
+  .stepCell .cap{display:none}
+  .item canvas{height:44px}
+  #palette{padding:6px 9px}
+  #itemRow{margin-bottom:5px}
+  .act{padding:9px 10px}
+}
+/* very narrow: steps go back to a single row of 4 under the picture */
+@media (max-width:420px){
+  #orderPanel{grid-template-columns:minmax(0,1fr);
+              grid-template-rows:auto minmax(0,1fr) auto}
+  #orderHead{grid-column:1;grid-row:1}
+  #wantBox{grid-column:1;grid-row:2}
+  #stepRow{grid-column:1;grid-row:3;
+    grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto}
+  .stepCell canvas{flex:none;height:34px}
+}
+
+@media (max-width:560px){
+  #hud{padding:6px 10px}
+  .brand span{display:none}
+  #dayLine{font-size:10px}#dayLine b{font-size:12px}
+  .item .nm{font-size:8px}
+  .act{padding:9px 9px;font-size:10.5px}
+  #serveBtn{font-size:12.5px}
+}
+
+/* =========================================================
+   LANDSCAPE — three real columns in ONE row:
+        [ serving window ] [ order card ] [ palette ]
+   #views uses display:contents so the scene and the order card
+   become direct children of the #app grid, sitting beside the
+   palette instead of stacked above it.
+   ========================================================= */
+@media (orientation:landscape) and (max-height:700px){
+  #app{
+    display:grid;
+    grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1.2fr);
+    grid-template-rows:auto minmax(0,1fr);
+    gap:6px;max-width:1180px}
+  #hud{grid-column:1 / -1;grid-row:1;padding:5px 11px}
+  .brand{font-size:12.5px}
+  #dayLine{font-size:10px}#dayLine b{font-size:11.5px}
+  #hearts{font-size:13.5px}
+
+  #views{display:contents}
+  #sceneWrap{grid-column:1;grid-row:2;min-height:0}
+
+  /* ---- order card: picture on top, steps as a 2x2 block ---- */
+  #orderPanel{grid-column:2;grid-row:2;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1.25fr) minmax(0,1fr);
+    padding:7px 8px;gap:5px}
+  #orderHead{grid-column:1;grid-row:1}
+  #orderHead .who{font-size:12px}
+  #orderHead .lbl{font-size:8.5px}
+  #wantBox{grid-column:1;grid-row:2}
+  #stepRow{grid-column:1;grid-row:3;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));gap:5px}
+  .stepCell{padding:3px 2px}
+  .stepCell canvas{flex:1 1 0;height:auto;min-height:0}
+  .stepCell .cap{font-size:7.5px}
+
+  /* ---- palette column: tabs, ingredients in TWO ROWS, actions ---- */
+  #palette{grid-column:3;grid-row:2;min-height:0;
+    display:flex;flex-direction:column;gap:6px;padding:7px 8px}
+
+  /* two rows of three. Rows are capped so that on tall landscape
+     screens the buttons do not stretch into thin elongated boxes
+     with the ingredient floating in dead space. */
+  #itemRow{flex:1 1 auto;min-height:0;margin-bottom:0;
+    grid-auto-flow:row;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-auto-rows:minmax(0,148px);align-content:center;gap:5px}
+  .item{padding:4px 2px 3px;gap:2px}
+  .item canvas{flex:1 1 0;height:auto;min-height:0}
+  .item .nm{font-size:8px}
+
+  #actions{flex:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  #serveBtn{grid-column:1 / -1;font-size:13px;padding:11px}
+  .act{padding:8px 9px;font-size:10.5px}
+}
+
+/* very short landscape phones: trim chrome, keep the 3 columns */
+@media (orientation:landscape) and (max-height:480px){
+  #app{gap:5px}
+  #hud{padding:4px 9px}
+  .brand{font-size:11.5px}
+  #dayLine{font-size:9px}#dayLine b{font-size:10.5px}
+  #orderPanel{padding:6px 7px;gap:4px}
+  #orderHead .who{font-size:11px}
+  .stepCell .cap{display:none}
+  #palette{padding:6px 7px;gap:5px}
+  .item .nm{font-size:7.5px}
+  .act{padding:7px 8px;font-size:10px}
+  #serveBtn{font-size:12px;padding:9px}
+  .card{padding:12px 14px}
+  .card h1{font-size:18px}
+  .card .sub{font-size:10.5px;margin:3px 0 7px}
+  .howRow{font-size:10.5px;margin-bottom:5px}
+  .howIco{width:36px;height:36px}
+  .goBtn{margin-top:9px;padding:10px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<main id="app">
+  <header id="hud">
+    <div class="brand">SCOOP <span>STREET</span></div>
+    <div id="dayLine">DAY <b id="dayNum">1</b> &nbsp;·&nbsp; SERVED <b id="servedNum">0</b></div>
+    <div id="hearts">♥ <span id="heartNum">0</span></div>
+  </header>
+
+  <section id="views">
+    <div id="sceneWrap">
+      <canvas id="sceneCv"></canvas>
+      <div id="floatLayer"></div>
+    </div>
+
+    <aside id="orderPanel">
+      <div id="orderHead">
+        <div class="headLeft">
+          <div class="lbl">YOU'RE MAKING</div>
+          <div class="who" id="custName">—</div>
+        </div>
+        <div class="headTag">THEY WANT &#9660;</div>
+      </div>
+      <div id="wantBox">
+        <canvas id="wantCv"></canvas>
+        <div id="matchBadge"><span>✓</span></div>
+      </div>
+      <div id="stepRow"></div>
+    </aside>
+  </section>
+
+  <footer id="palette">
+    <div id="itemRow"></div>
+    <div id="actions">
+      <button class="act" id="undoBtn" type="button" aria-label="Undo last step">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4.5 8.5h9a5.5 5.5 0 0 1 0 11H8"/>
+          <polyline points="8.5,4 4,8.5 8.5,13"/>
+        </svg><span class="lab">UNDO</span></button>
+      <button class="act" id="clearBtn" type="button" aria-label="Start over">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6.5h16"/>
+          <path d="M9.5 6.5V5A1.6 1.6 0 0 1 11.1 3.4h1.8A1.6 1.6 0 0 1 14.5 5v1.5"/>
+          <path d="M6.6 6.5l.9 13A1.6 1.6 0 0 0 9.1 21h5.8a1.6 1.6 0 0 0 1.6-1.5l.9-13"/>
+          <path d="M10.2 10.2v7M13.8 10.2v7"/>
+        </svg><span class="lab">START OVER</span></button>
+      <button class="act" id="serveBtn" type="button" disabled>SERVE IT</button>
+    </div>
+  </footer>
+</main>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <h1>SCOOP STREET</h1>
+    <div class="sub">A cozy ice cream truck. No timers, no rush —
+      just make treats and hand them out the window.</div>
+    <div class="secTitle">PICK YOUR TRUCK</div>
+    <div class="truckPick" id="truckPick"></div>
+    <div class="secTitle">HOW TO PLAY</div>
+    <div class="howRow"><canvas class="howIco" id="how1"></canvas>
+      <span>A customer shows you <b>a picture</b> of the treat they want.</span></div>
+    <div class="howRow"><canvas class="howIco" id="how2"></canvas>
+      <span>Tap the pictures below to build it. Match the picture!</span></div>
+    <div class="howRow"><canvas class="howIco" id="how3"></canvas>
+      <span>A green <b>✓</b> means it matches. Serve whenever you like —
+        everyone leaves happy.</span></div>
+    <button class="goBtn" id="openBtn" type="button">OPEN THE WINDOW</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="summary">
+  <div class="card">
+    <h1 id="sumTitle">THAT'S A WRAP</h1>
+    <div class="sub" id="sumSub"></div>
+    <div class="statGrid" id="sumStats"></div>
+    <div id="sumFav" class="sub"></div>
+    <button class="goBtn" id="nextDayBtn" type="button">OPEN TOMORROW</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+(function(){
+
+/* ============================================================
+   INGREDIENTS — each flavour carries a distinct drawn SYMBOL as
+   well as a colour, so similar colours are still told apart.
+   ============================================================ */
+const BASES=[
+  {id:'sugar',  name:'Cone',   col:'#e0a862', col2:'#c98a44'},
+  {id:'waffle', name:'Waffle', col:'#d69445', col2:'#b8762c'},
+  {id:'cup',    name:'Cup',    col:'#fff3f8', col2:'#ffc9de'}
+];
+const FLAVORS=[
+  {id:'vanilla',   name:'Vanilla',    col:'#fff4dc', col2:'#efdbb4', mark:'specks'},
+  {id:'strawberry',name:'Strawberry', col:'#ffb3c9', col2:'#f28ca9', mark:'berry'},
+  {id:'chocolate', name:'Chocolate',  col:'#a9714b', col2:'#87552f', mark:'swirl'},
+  {id:'mint',      name:'Mint',       col:'#a8e6cf', col2:'#7cc9ae', mark:'leaf'},
+  {id:'blueberry', name:'Blueberry',  col:'#b7a6e8', col2:'#9583d0', mark:'dots'},
+  {id:'mango',     name:'Mango',      col:'#ffcf6b', col2:'#eeae34', mark:'star'}
+];
+const SAUCES=[
+  {id:'none',   name:'None',      col:'#efe6ec', col2:'#ddd0d9'},
+  {id:'choc',   name:'Chocolate', col:'#6f4126', col2:'#4e2c17'},
+  {id:'caramel',name:'Caramel',   col:'#d99a4e', col2:'#b87a2c'},
+  {id:'berry',  name:'Berry',     col:'#e8558d', col2:'#c53a70'}
+];
+const TOPPINGS=[
+  {id:'none',     name:'None',     col:'#efe6ec', col2:'#ddd0d9'},
+  {id:'sprinkles',name:'Sprinkles',col:'#ffd772', col2:'#ff8fb8'},
+  {id:'cherry',   name:'Cherry',   col:'#e8455f', col2:'#c22f46'},
+  {id:'nuts',     name:'Nuts',     col:'#c99a5e', col2:'#a67b42'},
+  {id:'cookie',   name:'Cookie',   col:'#6b4a35', col2:'#4d3425'},
+  {id:'wafer',    name:'Wafer',    col:'#f2d9a8', col2:'#d9bb83'}
+];
+const byId=(a,id)=>a.find(x=>x.id===id)||a[0];
+
+const SPECIES=[
+  {id:'bear',   name:'Barnaby', fur:'#c69a72', fur2:'#a97d57', ear:'round', muzzle:'#f0dcc6'},
+  {id:'cat',    name:'Mochi',   fur:'#f2b9a0', fur2:'#d99a82', ear:'point', muzzle:'#fff0e6'},
+  {id:'bunny',  name:'Clover',  fur:'#f6e9f2', fur2:'#e0cddb', ear:'long',  muzzle:'#fff8fc'},
+  {id:'panda',  name:'Pudding', fur:'#fbfbfb', fur2:'#e2e2e6', ear:'round', muzzle:'#ffffff', panda:true},
+  {id:'fox',    name:'Ember',   fur:'#f0955a', fur2:'#d4763c', ear:'point', muzzle:'#fff4ea'},
+  {id:'frog',   name:'Lily',    fur:'#a8d98a', fur2:'#86b96a', ear:'none',  muzzle:'#c6ecac', frog:true},
+  {id:'penguin',name:'Tux',     fur:'#5a6270', fur2:'#3f4652', ear:'none',  muzzle:'#fdfdfd', beak:true},
+  {id:'pup',    name:'Biscuit', fur:'#e8c99b', fur2:'#cfa972', ear:'flop',  muzzle:'#fff6e8'}
+];
+const THANKS=['Thank you!','So good!','Yum!','Perfect!','Mmm!','My favourite!'];
+const TRUCKS=[
+  {id:'red',   name:'Scarlet', body:'#ef4a52', trim:'#ffc0c2', roof:'#fff2f2'},
+  {id:'pink',  name:'Blossom', body:'#ff9dc0', trim:'#ffd9e8', roof:'#fff4f8'},
+  {id:'mint',  name:'Minty',   body:'#8fdcc6', trim:'#d6f5ec', roof:'#f4fffc'},
+  {id:'lemon', name:'Sunny',   body:'#ffd06b', trim:'#ffeec2', roof:'#fffaed'},
+  {id:'berry', name:'Berry',   body:'#b48ce0', trim:'#e4d4f7', roof:'#f9f4ff'}
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const MAX_SCOOPS=3, CUSTOMERS_PER_DAY=6;
+const S={
+  phase:'title', truckIdx:0, truck:TRUCKS[0],
+  day:1, served:0, hearts:0, dayServed:0, dayHearts:0, perfectToday:0,
+  tab:'base', cust:null,
+  build:{base:null,scoops:[],sauce:null,topping:null},
+  react:{t:0,tier:0,text:''}, handoff:0,
+  t:0, pulseT:0, favFlavor:{}
+};
+
+const $=id=>document.getElementById(id);
+const sCv=$('sceneCv'), sx=sCv.getContext('2d');
+const wCv=$('wantCv'),  wx=wCv.getContext('2d');
+
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);
+  c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);
+  c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+
+/* ============================================================
+   ORDERS
+   ============================================================ */
+function makeOrder(){
+  const n=1+Math.floor(Math.random()*MAX_SCOOPS);
+  const scoops=[];
+  for(let i=0;i<n;i++) scoops.push(pick(FLAVORS).id);
+  return {base:pick(BASES).id, scoops:scoops,
+    sauce:Math.random()<0.6?pick(SAUCES.slice(1)).id:'none',
+    topping:Math.random()<0.66?pick(TOPPINGS.slice(1)).id:'none'};
+}
+function newCustomer(){
+  const sp=pick(SPECIES);
+  S.cust={sp:sp,name:sp.name,order:makeOrder(),bounce:0,arrive:0};
+  S.build={base:null,scoops:[],sauce:null,topping:null};
+  S.handoff=0; S.tab='base';
+  renderAll();
+}
+
+/* ============================================================
+   BUILD
+   ============================================================ */
+function tapItem(id){
+  if(S.phase!=='serving') return;
+  const t=S.tab, b=S.build;
+  if(t==='base'){ b.base=id; if(!b.scoops.length) S.tab='scoop'; }
+  else if(t==='scoop'){
+    if(!b.base) b.base='sugar';
+    if(b.scoops.length<MAX_SCOOPS) b.scoops.push(id);
+    else { b.scoops.shift(); b.scoops.push(id); }
+  }
+  else if(t==='sauce'){ b.sauce=id==='none'?null:id; }
+  else { b.topping=id==='none'?null:id; }
+  S.pulseT=0.28;
+  renderAll();
+}
+function undo(){
+  if(S.phase!=='serving') return;
+  const b=S.build;
+  if(b.topping){ b.topping=null; S.tab='top'; }
+  else if(b.sauce){ b.sauce=null; S.tab='sauce'; }
+  else if(b.scoops.length){ b.scoops.pop(); S.tab='scoop'; }
+  else if(b.base){ b.base=null; S.tab='base'; }
+  renderAll();
+}
+function clearBuild(){
+  if(S.phase!=='serving') return;
+  S.build={base:null,scoops:[],sauce:null,topping:null};
+  S.tab='base'; renderAll();
+}
+
+/* ============================================================
+   MATCHING — per part, so each step shows its own tick
+   ============================================================ */
+function partMatch(){
+  const o=S.cust?S.cust.order:null, b=S.build;
+  if(!o) return {base:false,scoops:false,sauce:false,topping:false,all:false,frac:0};
+  const base=b.base===o.base;
+  const want=o.scoops.slice(); let hit=0;
+  for(const g of b.scoops){ const i=want.indexOf(g); if(i>=0){hit++;want.splice(i,1);} }
+  const scoops=hit===o.scoops.length && b.scoops.length===o.scoops.length;
+  const sauce=(b.sauce||'none')===o.sauce;
+  const topping=(b.topping||'none')===o.topping;
+  const total=1+o.scoops.length+1+1;
+  const extra=Math.max(0,b.scoops.length-o.scoops.length);
+  const frac=clamp(((base?1:0)+hit+(sauce?1:0)+(topping?1:0)-extra*0.5)/total,0,1);
+  return {base,scoops,sauce,topping,all:base&&scoops&&sauce&&topping,frac};
+}
+
+/* ============================================================
+   SERVING
+   ============================================================ */
+function serve(){
+  if(S.phase!=='serving'||!S.build.base) return;
+  const m=partMatch();
+  let tier,text,give;
+  if(m.all){ tier=3; text='PERFECT!'; give=5; }
+  else if(m.frac>=0.6){ tier=2; text='Yummy!'; give=3; }
+  else { tier=1; text='Ooh, a surprise!'; give=2; }
+  S.hearts+=give; S.dayHearts+=give; S.served++; S.dayServed++;
+  if(tier===3) S.perfectToday++;
+  for(const f of S.build.scoops) S.favFlavor[f]=(S.favFlavor[f]||0)+1;
+  S.react={t:0,tier:tier,text:text};
+  S.phase='reacting'; S.cust.bounce=1;
+  floatText('+'+give+' ♥','#ff6f9d');
+  floatText(pick(THANKS),'#7fd9c4',0.35);
+  syncActions();
+}
+function afterReaction(){
+  if(S.dayServed>=CUSTOMERS_PER_DAY){ showSummary(); return; }
+  S.phase='serving'; newCustomer();
+}
+function floatText(txt,col,delay){
+  setTimeout(()=>{
+    const el=document.createElement('div');
+    el.className='float'; el.textContent=txt; el.style.color=col;
+    el.style.left=(36+Math.random()*26)+'%';
+    el.style.top=(44+Math.random()*10)+'%';
+    $('floatLayer').appendChild(el);
+    setTimeout(()=>el.remove(),1600);
+  },(delay||0)*1000);
+}
+function showSummary(){
+  S.phase='summary';
+  $('sumTitle').textContent='DAY '+S.day+' — ALL DONE';
+  $('sumSub').textContent='You served everyone on the block.';
+  $('sumStats').innerHTML=
+    '<div class="stat"><div class="sv">'+S.dayServed+'</div><div class="sl">SERVED</div></div>'+
+    '<div class="stat"><div class="sv">'+S.dayHearts+'</div><div class="sl">HEARTS</div></div>'+
+    '<div class="stat"><div class="sv">'+S.perfectToday+'</div><div class="sl">PERFECT</div></div>';
+  let favId=null,favN=0;
+  for(const k in S.favFlavor) if(S.favFlavor[k]>favN){favN=S.favFlavor[k];favId=k;}
+  $('sumFav').textContent=favId?('Most scooped: '+byId(FLAVORS,favId).name+' ('+favN+')'):'';
+  $('summary').classList.remove('hidden');
+}
+function nextDay(){
+  S.day++; S.dayServed=0; S.dayHearts=0; S.perfectToday=0;
+  $('summary').classList.add('hidden');
+  S.phase='serving'; newCustomer(); syncHud();
+}
+
+/* ============================================================
+   SHARED TREAT RENDERER — used for the order picture, the
+   counter treat and the wish sign, so they are comparable.
+   ============================================================ */
+function drawTreat(c,x,y,U,b){
+  if(!b.base) return;
+  const base=byId(BASES,b.base);
+  let topY=y;
+
+  if(b.base==='cup'){
+    const h=54*U,wT=62*U,wB=44*U;
+    c.fillStyle='#00000018';
+    c.beginPath(); c.ellipse(x,y+3*U,wB*0.6,7*U,0,0,6.3); c.fill();
+    const g=c.createLinearGradient(x-wT/2,0,x+wT/2,0);
+    g.addColorStop(0,base.col2); g.addColorStop(.42,base.col); g.addColorStop(1,base.col2);
+    c.fillStyle=g;
+    c.beginPath(); c.moveTo(x-wB/2,y); c.lineTo(x-wT/2,y-h);
+    c.lineTo(x+wT/2,y-h); c.lineTo(x+wB/2,y); c.closePath(); c.fill();
+    c.fillStyle='#ffb3d0'; c.globalAlpha=.55;
+    for(let i=-1;i<=1;i++) c.fillRect(x+i*18*U-3*U,y-h+6*U,6*U,h-12*U);
+    c.globalAlpha=1;
+    topY=y-h+6*U;
+  } else {
+    const h=76*U,wT=52*U;
+    c.fillStyle='#00000018';
+    c.beginPath(); c.ellipse(x,y+3*U,26*U,6*U,0,0,6.3); c.fill();
+    const g=c.createLinearGradient(x-wT/2,0,x+wT/2,0);
+    g.addColorStop(0,base.col2); g.addColorStop(.40,base.col); g.addColorStop(1,base.col2);
+    const conePath=()=>{ c.beginPath(); c.moveTo(x,y+6*U);
+      c.lineTo(x-wT/2,y-h); c.lineTo(x+wT/2,y-h); c.closePath(); };
+    c.fillStyle=g; conePath(); c.fill();
+    if(b.base==='waffle'){
+      /* clip to the cone, or the lattice runs past the slanted
+         edges and floats in the air beside it */
+      c.save(); conePath(); c.clip();
+      c.strokeStyle='#00000030'; c.lineWidth=1.6*U;
+      for(let i=-4;i<=4;i++){
+        c.beginPath(); c.moveTo(x+i*13*U,y-h); c.lineTo(x+i*5*U,y+8*U); c.stroke();
+        const ly=y-h+(i+4)*(h/8);
+        c.beginPath(); c.moveTo(x-wT/2,ly); c.lineTo(x+wT/2,ly); c.stroke();
+      }
+      c.restore();
+    }
+    c.fillStyle=base.col2;
+    c.beginPath(); c.ellipse(x,y-h,wT/2,7*U,0,0,6.3); c.fill();
+    topY=y-h;
+  }
+
+  const R=27*U; let lastY=topY;
+  b.scoops.forEach((fid,i)=>{
+    const f=byId(FLAVORS,fid);
+    const sy=topY-R*0.52-i*R*1.32; lastY=sy;
+    const g=c.createRadialGradient(x-R*0.3,sy-R*0.35,R*0.15,x,sy,R);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.26,f.col); g.addColorStop(1,f.col2);
+    c.fillStyle=g;
+    c.beginPath();
+    for(let a=0;a<Math.PI*2;a+=0.35){
+      const wob=1+Math.sin(a*3+i*1.7)*0.045;
+      const px=x+Math.cos(a)*R*wob, py=sy+Math.sin(a)*R*wob;
+      a===0?c.moveTo(px,py):c.lineTo(px,py);
+    }
+    c.closePath(); c.fill();
+    drawFlavorMark(c,x,sy,R,f);
+    c.globalAlpha=.42; c.fillStyle='#ffffff';
+    c.beginPath(); c.ellipse(x-R*0.33,sy-R*0.38,R*0.3,R*0.19,-0.5,0,6.3); c.fill();
+    c.globalAlpha=1;
+  });
+
+  const crownY=b.scoops.length?lastY-R*0.82:topY;
+
+  if(b.sauce&&b.scoops.length){
+    const s=byId(SAUCES,b.sauce);
+    c.fillStyle=s.col;
+    c.beginPath();
+    c.moveTo(x-R*0.96,lastY-R*0.10);
+    c.quadraticCurveTo(x,lastY-R*1.12,x+R*0.96,lastY-R*0.10);
+    c.quadraticCurveTo(x+R*0.62,lastY+R*0.30,x+R*0.30,lastY+R*0.05);
+    c.quadraticCurveTo(x+R*0.05,lastY+R*0.46,x-R*0.22,lastY+R*0.08);
+    c.quadraticCurveTo(x-R*0.55,lastY+R*0.42,x-R*0.96,lastY-R*0.10);
+    c.closePath(); c.fill();
+    c.globalAlpha=.28; c.fillStyle='#ffffff';
+    c.beginPath(); c.ellipse(x-R*0.26,lastY-R*0.58,R*0.24,R*0.11,-0.35,0,6.3); c.fill();
+    c.globalAlpha=1;
+  }
+  if(b.topping&&b.scoops.length) drawTopping(c,x,lastY,crownY,R,U,b.topping);
+}
+
+function drawFlavorMark(c,x,y,R,f){
+  c.save();
+  if(f.mark==='specks'){
+    c.fillStyle='#8a7550'; c.globalAlpha=.72;
+    for(let i=0;i<7;i++){
+      const a=i*0.9+0.4, rr2=R*(0.24+((i*29)%40)/100*0.5);
+      c.save(); c.translate(x+Math.cos(a)*rr2,y+Math.sin(a)*rr2*0.85); c.rotate(a);
+      c.fillRect(-R*0.10,-R*0.035,R*0.20,R*0.07); c.restore();
+    }
+  } else if(f.mark==='berry'){
+    c.fillStyle='#d9426a'; c.globalAlpha=.85;
+    for(const p of [[-0.34,0.04],[0.30,-0.16],[0.04,0.34]]){
+      const px=x+p[0]*R, py=y+p[1]*R;
+      c.beginPath();
+      c.moveTo(px,py-R*0.15);
+      c.quadraticCurveTo(px+R*0.15,py-R*0.13,px+R*0.10,py+R*0.05);
+      c.quadraticCurveTo(px,py+R*0.19,px-R*0.10,py+R*0.05);
+      c.quadraticCurveTo(px-R*0.15,py-R*0.13,px,py-R*0.15);
+      c.closePath(); c.fill();
+    }
+  } else if(f.mark==='swirl'){
+    c.strokeStyle='#5f3a1e'; c.globalAlpha=.65; c.lineWidth=R*0.13; c.lineCap='round';
+    c.beginPath();
+    for(let a=0;a<Math.PI*3.1;a+=0.2){
+      const rad=R*0.12+a*R*0.085;
+      const px=x+Math.cos(a)*rad, py=y+Math.sin(a)*rad*0.9;
+      a===0?c.moveTo(px,py):c.lineTo(px,py);
+    }
+    c.stroke(); c.lineCap='butt';
+  } else if(f.mark==='leaf'){
+    c.fillStyle='#3f8f6e'; c.globalAlpha=.8;
+    for(const p of [[-0.30,0.10],[0.26,-0.10],[0.02,0.36]]){
+      c.save(); c.translate(x+p[0]*R,y+p[1]*R); c.rotate(p[0]*1.6);
+      c.beginPath();
+      c.moveTo(0,-R*0.20); c.quadraticCurveTo(R*0.16,0,0,R*0.20);
+      c.quadraticCurveTo(-R*0.16,0,0,-R*0.20);
+      c.closePath(); c.fill();
+      c.strokeStyle='#2c6b51'; c.lineWidth=R*0.035;
+      c.beginPath(); c.moveTo(0,-R*0.18); c.lineTo(0,R*0.18); c.stroke();
+      c.restore();
+    }
+  } else if(f.mark==='dots'){
+    c.fillStyle='#5b4a9c'; c.globalAlpha=.8;
+    for(const p of [[-0.32,-0.04],[0.10,-0.28],[0.28,0.14],[-0.10,0.32]]){
+      c.beginPath(); c.arc(x+p[0]*R,y+p[1]*R,R*0.115,0,6.3); c.fill();
+    }
+  } else if(f.mark==='star'){
+    c.fillStyle='#c97d15'; c.globalAlpha=.82;
+    for(const p of [[-0.28,0.02],[0.24,-0.18],[0.06,0.30]]){
+      const px=x+p[0]*R, py=y+p[1]*R, rad=R*0.17;
+      c.beginPath();
+      for(let i=0;i<10;i++){
+        const a=-Math.PI/2+i*Math.PI/5, rr2=i%2?rad*0.44:rad;
+        const sx2=px+Math.cos(a)*rr2, sy2=py+Math.sin(a)*rr2;
+        i===0?c.moveTo(sx2,sy2):c.lineTo(sx2,sy2);
+      }
+      c.closePath(); c.fill();
+    }
+  }
+  c.globalAlpha=1; c.restore();
+}
+
+function drawTopping(c,x,lastY,crownY,R,U,tp){
+  if(tp==='sprinkles'){
+    const cols=['#ff8fb8','#ffd772','#7fd9c4','#b7a6e8','#ff6f6f'];
+    for(let i=0;i<22;i++){
+      const a=(i/22)*Math.PI*2+0.4, rr2=R*(0.30+((i*13)%50)/100*0.62);
+      const px=x+Math.cos(a)*rr2, py=lastY+Math.sin(a)*rr2*0.68-R*0.22;
+      c.save(); c.translate(px,py); c.rotate(a*1.7);
+      c.fillStyle=cols[i%5]; c.fillRect(-3.4*U,-1.5*U,6.8*U,3*U); c.restore();
+    }
+  } else if(tp==='cherry'){
+    c.strokeStyle='#5f8a3a'; c.lineWidth=2.6*U;
+    c.beginPath(); c.moveTo(x+2*U,crownY+4*U);
+    c.quadraticCurveTo(x+11*U,crownY-14*U,x+4*U,crownY-20*U); c.stroke();
+    const g=c.createRadialGradient(x-3*U,crownY-4*U,2*U,x,crownY,12*U);
+    g.addColorStop(0,'#ff8a9c'); g.addColorStop(1,'#c22f46');
+    c.fillStyle=g; c.beginPath(); c.arc(x,crownY+1*U,11*U,0,6.3); c.fill();
+    c.globalAlpha=.6; c.fillStyle='#fff';
+    c.beginPath(); c.ellipse(x-4*U,crownY-3*U,3.4*U,2.2*U,-0.5,0,6.3); c.fill();
+    c.globalAlpha=1;
+  } else if(tp==='nuts'){
+    for(let i=0;i<16;i++){
+      const a=(i/16)*Math.PI*2+0.7, rr2=R*(0.32+((i*17)%40)/100*0.6);
+      const px=x+Math.cos(a)*rr2, py=lastY+Math.sin(a)*rr2*0.66-R*0.20;
+      c.fillStyle=i%2?'#c99a5e':'#a67b42';
+      c.beginPath(); c.ellipse(px,py,4.2*U,3*U,a,0,6.3); c.fill();
+    }
+  } else if(tp==='cookie'){
+    for(let i=0;i<14;i++){
+      const a=(i/14)*Math.PI*2+0.2, rr2=R*(0.30+((i*23)%45)/100*0.62);
+      const px=x+Math.cos(a)*rr2, py=lastY+Math.sin(a)*rr2*0.66-R*0.20;
+      c.save(); c.translate(px,py); c.rotate(a);
+      c.fillStyle=i%3?'#4d3425':'#6b4a35';
+      rr(c,-3.6*U,-3*U,7.2*U,6*U,1.8*U); c.fill(); c.restore();
+    }
+  } else if(tp==='wafer'){
+    c.save(); c.translate(x+R*0.46,crownY+R*0.30); c.rotate(-0.34);
+    const g=c.createLinearGradient(0,-30*U,0,6*U);
+    g.addColorStop(0,'#f6e2ba'); g.addColorStop(1,'#d9bb83');
+    c.fillStyle=g; rr(c,-7*U,-34*U,14*U,40*U,3*U); c.fill();
+    c.strokeStyle='#c9a86e'; c.lineWidth=1.3*U;
+    for(let i=0;i<4;i++){ c.beginPath(); c.moveTo(-7*U,-30*U+i*9*U); c.lineTo(7*U,-30*U+i*9*U); c.stroke(); }
+    c.restore();
+  }
+}
+
+/* ============================================================
+   CANVAS SIZING
+   ============================================================ */
+function sizeCanvas(cv){
+  const r=cv.getBoundingClientRect();
+  if(r.width<2||r.height<2) return null;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+  return {w:w,h:h,dpr:dpr};
+}
+
+/* The big picture in the panel is the treat YOU are making, so it can be
+   compared straight against the requested steps shown underneath. */
+function drawMine(){
+  const m=sizeCanvas(wCv); if(!m) return;
+  const W=m.w,H=m.h;
+  wx.setTransform(1,0,0,1,0,0);
+  wx.clearRect(0,0,W,H);
+  const b=S.build;
+  if(!b.base){
+    /* nothing built yet — a soft placeholder so the box never looks broken */
+    wx.save();
+    wx.globalAlpha=.45;
+    wx.strokeStyle='#e2bcd2'; wx.lineWidth=Math.max(2,H*0.012);
+    wx.setLineDash([H*0.05,H*0.045]);
+    wx.beginPath(); wx.ellipse(W*0.5,H*0.86,W*0.26,H*0.055,0,0,6.3); wx.stroke();
+    wx.setLineDash([]);
+    wx.globalAlpha=.30;
+    wx.beginPath();
+    wx.moveTo(W*0.5,H*0.80); wx.lineTo(W*0.40,H*0.42); wx.lineTo(W*0.60,H*0.42);
+    wx.closePath(); wx.stroke();
+    wx.beginPath(); wx.arc(W*0.5,H*0.35,W*0.105,0,6.3); wx.stroke();
+    wx.restore();
+    return;
+  }
+  const needH=(b.base==='cup'?62:84)+b.scoops.length*36+42;
+  const U=Math.min(W/180,H/needH);
+  drawTreat(wx,W*0.5,H*0.92,U,b);
+}
+
+/* ============================================================
+   SCENE
+   ============================================================ */
+function drawScene(){
+  const m=sizeCanvas(sCv); if(!m) return;
+  const W=m.w,H=m.h,U=H/620;
+  sx.setTransform(1,0,0,1,0,0);
+
+  const wall=sx.createLinearGradient(0,0,0,H);
+  wall.addColorStop(0,'#fde7f1'); wall.addColorStop(1,'#f6d8e6');
+  sx.fillStyle=wall; sx.fillRect(0,0,W,H);
+
+  const wx0=W*0.05,wx1=W*0.95,wy0=H*0.07,wy1=H*0.70;
+  const ww=wx1-wx0, wh=wy1-wy0;
+
+  sx.save(); rr(sx,wx0,wy0,ww,wh,24*U); sx.clip();
+  const sky=sx.createLinearGradient(0,wy0,0,wy1);
+  sky.addColorStop(0,'#bfe9f7'); sky.addColorStop(0.62,'#dff4fb'); sky.addColorStop(1,'#f6f2e2');
+  sx.fillStyle=sky; sx.fillRect(wx0,wy0,ww,wh);
+  sx.globalAlpha=.5; sx.fillStyle='#fff6c9';
+  sx.beginPath(); sx.arc(wx0+ww*0.13,wy0+wh*0.17,52*U,0,6.3); sx.fill();
+  sx.globalAlpha=1;
+  for(let i=0;i<4;i++){
+    const cw=ww*0.2;
+    const cx=wx0+((i*0.34+S.t*0.012)%1.35-0.18)*ww;
+    const cy=wy0+wh*(0.12+i*0.08);
+    sx.globalAlpha=.85; sx.fillStyle='#fff';
+    sx.beginPath();
+    sx.ellipse(cx,cy,cw*0.5,17*U,0,0,6.3);
+    sx.ellipse(cx+cw*0.22,cy-8*U,cw*0.3,14*U,0,0,6.3);
+    sx.fill(); sx.globalAlpha=1;
+  }
+  for(let i=0;i<7;i++){
+    const bx=wx0+ww*(0.05+i*0.145), by=wy0+wh*0.68;
+    sx.fillStyle=i%2?'#9ed9a8':'#8ccb97';
+    sx.beginPath(); sx.arc(bx,by,30*U,0,6.3); sx.fill();
+    sx.fillStyle='#b98c5e'; sx.fillRect(bx-4*U,by,8*U,30*U);
+  }
+  sx.fillStyle='#a8dcae'; sx.fillRect(wx0,wy0+wh*0.74,ww,wh*0.26);
+  sx.fillStyle='#e8dfc4'; sx.fillRect(wx0,wy0+wh*0.84,ww,wh*0.16);
+
+  if(S.cust){
+    const cxp=wx0+ww*0.68, cbase=wy0+wh*0.99;
+    const arrive=clamp(S.cust.arrive,0,1);
+    sx.globalAlpha=arrive;
+    drawCustomer(sx,cxp+(1-arrive)*ww*0.3,cbase,U,S.cust,S.t);
+    if(S.phase==='serving') drawWishSign(sx,wx0+ww*0.28,wy0+wh*0.46,U);
+    sx.globalAlpha=1;
+  }
+  sx.restore();
+
+  sx.strokeStyle='#ffffff'; sx.lineWidth=13*U; rr(sx,wx0,wy0,ww,wh,24*U); sx.stroke();
+  sx.strokeStyle='#e8bcd2'; sx.lineWidth=4.5*U; rr(sx,wx0,wy0,ww,wh,24*U); sx.stroke();
+  const scN=9, scW=ww/scN;
+  for(let i=0;i<scN;i++){
+    sx.fillStyle=i%2?S.truck.body:'#fffdfa';
+    sx.beginPath();
+    sx.moveTo(wx0+i*scW,wy0-3*U); sx.lineTo(wx0+(i+1)*scW,wy0-3*U);
+    sx.lineTo(wx0+(i+1)*scW,wy0+14*U);
+    sx.quadraticCurveTo(wx0+(i+0.5)*scW,wy0+36*U,wx0+i*scW,wy0+14*U);
+    sx.closePath(); sx.fill();
+  }
+
+  const cy=wy1+5*U;
+  const cg=sx.createLinearGradient(0,cy,0,H);
+  cg.addColorStop(0,'#ffffff'); cg.addColorStop(0.18,'#f7e9f0'); cg.addColorStop(1,'#eed6e3');
+  sx.fillStyle=cg; sx.fillRect(0,cy,W,H-cy);
+  sx.fillStyle='#e0bed2'; sx.fillRect(0,cy,W,5*U);
+
+  const treatX=lerp(W*0.30,wx0+ww*0.62,S.handoff);
+  const treatY=lerp(cy+2*U,wy0+wh*0.68,S.handoff*0.7);
+  const ps=S.pulseT>0?1+S.pulseT*0.5:1;
+  if(S.build.base){
+    sx.save(); sx.translate(treatX,treatY); sx.scale(ps,ps);
+    drawTreat(sx,0,0,U*1.0,S.build); sx.restore();
+  } else if(S.phase==='serving'){
+    sx.globalAlpha=.4;
+    sx.strokeStyle='#d9b6c9'; sx.lineWidth=3*U; sx.setLineDash([9*U,8*U]);
+    sx.beginPath(); sx.ellipse(W*0.30,cy-2*U,44*U,12*U,0,0,6.3); sx.stroke();
+    sx.setLineDash([]); sx.globalAlpha=1;
+  }
+
+  if(S.phase==='reacting'&&S.react.t<1.4){
+    const a=clamp(1-Math.max(0,S.react.t-0.9)/0.5,0,1);
+    sx.globalAlpha=a; sx.textAlign='center';
+    sx.font='900 '+(32*U)+'px Segoe UI, Arial';
+    sx.fillStyle=S.react.tier===3?'#ff6f9d':S.react.tier===2?'#7fd9c4':'#ffb54f';
+    sx.fillText(S.react.text,W*0.5,wy0+wh*0.22);
+    sx.globalAlpha=1;
+  }
+}
+
+function drawWishSign(c,x,y,U){
+  const o=S.cust.order;
+  const w=152*U,h=172*U;
+  c.save();
+  c.translate(x,y+Math.sin(S.t*1.6)*3*U);
+  c.rotate(-0.05);
+  c.fillStyle='#00000022'; rr(c,-w/2+3*U,-h/2+4*U,w,h,12*U); c.fill();
+  c.fillStyle='#fffdfa'; rr(c,-w/2,-h/2,w,h,12*U); c.fill();
+  c.strokeStyle='#ffc2da'; c.lineWidth=3.5*U; rr(c,-w/2,-h/2,w,h,12*U); c.stroke();
+  const needH=(o.base==='cup'?62:84)+o.scoops.length*36+26;
+  const su=Math.min((w-16*U)/170,(h-14*U)/needH);
+  drawTreat(c,0,h/2-10*U,su,{base:o.base,scoops:o.scoops,
+    sauce:o.sauce==='none'?null:o.sauce,
+    topping:o.topping==='none'?null:o.topping});
+  c.restore();
+}
+
+function drawCustomer(c,x,baseY,U,cust,t){
+  const sp=cust.sp, happy=S.phase==='reacting';
+  const bob=Math.sin(t*2.2)*3*U+(cust.bounce>0?Math.sin(t*16)*7*U*cust.bounce:0);
+  const headR=50*U, bodyTop=baseY-86*U+bob, headY=bodyTop-headR*0.78;
+
+  const bg=c.createLinearGradient(x-46*U,bodyTop,x+46*U,baseY);
+  bg.addColorStop(0,sp.fur2); bg.addColorStop(0.45,sp.fur); bg.addColorStop(1,sp.fur2);
+  c.fillStyle=bg;
+  c.beginPath();
+  c.moveTo(x-42*U,baseY);
+  c.quadraticCurveTo(x-48*U,bodyTop+10*U,x-28*U,bodyTop);
+  c.lineTo(x+28*U,bodyTop);
+  c.quadraticCurveTo(x+48*U,bodyTop+10*U,x+42*U,baseY);
+  c.closePath(); c.fill();
+  c.fillStyle=sp.muzzle; c.globalAlpha=.75;
+  c.beginPath(); c.ellipse(x,bodyTop+38*U,24*U,29*U,0,0,6.3); c.fill();
+  c.globalAlpha=1;
+
+  const reach=happy?1:0;
+  c.strokeStyle=sp.fur2; c.lineWidth=12*U; c.lineCap='round';
+  for(const s of [-1,1]){
+    c.beginPath(); c.moveTo(x+s*36*U,bodyTop+24*U);
+    c.lineTo(x+s*(48+reach*6)*U,bodyTop+(reach?-4:32)*U); c.stroke();
+  }
+  c.lineCap='butt';
+
+  if(sp.ear==='round'){
+    for(const s of [-1,1]){
+      c.fillStyle=sp.fur2;
+      c.beginPath(); c.arc(x+s*headR*0.72,headY-headR*0.62,18*U,0,6.3); c.fill();
+      c.fillStyle=sp.muzzle; c.globalAlpha=.6;
+      c.beginPath(); c.arc(x+s*headR*0.72,headY-headR*0.62,9*U,0,6.3); c.fill();
+      c.globalAlpha=1;
+    }
+  } else if(sp.ear==='point'){
+    for(const s of [-1,1]){
+      c.fillStyle=sp.fur2;
+      c.beginPath();
+      c.moveTo(x+s*headR*0.38,headY-headR*0.74);
+      c.lineTo(x+s*headR*0.92,headY-headR*1.22);
+      c.lineTo(x+s*headR*0.94,headY-headR*0.46);
+      c.closePath(); c.fill();
+      c.fillStyle='#ffc9d4'; c.globalAlpha=.75;
+      c.beginPath();
+      c.moveTo(x+s*headR*0.50,headY-headR*0.74);
+      c.lineTo(x+s*headR*0.82,headY-headR*1.02);
+      c.lineTo(x+s*headR*0.84,headY-headR*0.58);
+      c.closePath(); c.fill(); c.globalAlpha=1;
+    }
+  } else if(sp.ear==='long'){
+    for(const s of [-1,1]){
+      c.save(); c.translate(x+s*headR*0.42,headY-headR*0.80); c.rotate(s*0.22);
+      c.fillStyle=sp.fur2;
+      c.beginPath(); c.ellipse(0,-32*U,14*U,37*U,0,0,6.3); c.fill();
+      c.fillStyle='#ffd7e4';
+      c.beginPath(); c.ellipse(0,-32*U,7*U,27*U,0,0,6.3); c.fill();
+      c.restore();
+    }
+  } else if(sp.ear==='flop'){
+    for(const s of [-1,1]){
+      c.fillStyle=sp.fur2;
+      c.beginPath(); c.ellipse(x+s*headR*0.90,headY+headR*0.10,15*U,30*U,s*0.30,0,6.3); c.fill();
+    }
+  }
+
+  const hg=c.createRadialGradient(x-headR*0.3,headY-headR*0.35,headR*0.2,x,headY,headR);
+  hg.addColorStop(0,'#ffffff'); hg.addColorStop(0.22,sp.fur); hg.addColorStop(1,sp.fur2);
+  c.fillStyle=hg;
+  c.beginPath(); c.arc(x,headY,headR,0,6.3); c.fill();
+
+  if(sp.panda){
+    c.fillStyle='#3a3a42';
+    for(const s of [-1,1]){
+      c.beginPath(); c.ellipse(x+s*headR*0.40,headY-headR*0.06,16*U,18*U,s*0.25,0,6.3); c.fill();
+      c.beginPath(); c.arc(x+s*headR*0.72,headY-headR*0.62,18*U,0,6.3); c.fill();
+    }
+  }
+  if(sp.frog){
+    for(const s of [-1,1]){
+      c.fillStyle=sp.fur;
+      c.beginPath(); c.arc(x+s*headR*0.46,headY-headR*0.60,18*U,0,6.3); c.fill();
+    }
+  }
+
+  c.fillStyle=sp.muzzle;
+  c.beginPath(); c.ellipse(x,headY+headR*0.30,headR*0.46,headR*0.34,0,0,6.3); c.fill();
+
+  const eyeY=sp.frog?headY-headR*0.60:headY-headR*0.10;
+  const eyeX=sp.frog?headR*0.46:headR*0.34;
+  for(const s of [-1,1]){
+    if(happy){
+      c.strokeStyle='#3a2f42'; c.lineWidth=4.2*U; c.lineCap='round';
+      c.beginPath(); c.arc(x+s*eyeX,eyeY+2*U,8*U,Math.PI*1.15,Math.PI*1.85); c.stroke();
+      c.lineCap='butt';
+    } else {
+      c.fillStyle='#3a2f42';
+      c.beginPath(); c.arc(x+s*eyeX,eyeY,7*U,0,6.3); c.fill();
+      c.fillStyle='#ffffff';
+      c.beginPath(); c.arc(x+s*eyeX-2.2*U,eyeY-2.4*U,2.6*U,0,6.3); c.fill();
+    }
+  }
+
+  if(sp.beak){
+    c.fillStyle='#ffb347';
+    c.beginPath();
+    c.moveTo(x-12*U,headY+headR*0.20); c.lineTo(x+12*U,headY+headR*0.20);
+    c.lineTo(x,headY+headR*0.48); c.closePath(); c.fill();
+  } else {
+    c.fillStyle='#4a3350';
+    c.beginPath(); c.ellipse(x,headY+headR*0.17,6*U,4.4*U,0,0,6.3); c.fill();
+    c.strokeStyle='#4a3350'; c.lineWidth=2.8*U; c.lineCap='round';
+    if(happy){ c.beginPath(); c.arc(x,headY+headR*0.26,10*U,0.18*Math.PI,0.82*Math.PI); c.stroke(); }
+    else {
+      c.beginPath(); c.moveTo(x-8*U,headY+headR*0.32);
+      c.quadraticCurveTo(x,headY+headR*0.42,x+8*U,headY+headR*0.32); c.stroke();
+    }
+    c.lineCap='butt';
+  }
+
+  if(happy){
+    c.globalAlpha=.55; c.fillStyle='#ff9ab5';
+    for(const s of [-1,1]){
+      c.beginPath(); c.ellipse(x+s*headR*0.66,headY+headR*0.22,11*U,7*U,0,0,6.3); c.fill();
+    }
+    c.globalAlpha=1;
+    for(let i=0;i<3;i++){
+      const hp=(S.react.t*1.5+i*0.33)%1;
+      c.globalAlpha=clamp(1-hp,0,1)*0.9;
+      c.fillStyle='#ff6f9d';
+      c.font='900 '+(22*U)+'px Segoe UI, Arial'; c.textAlign='center';
+      c.fillText('♥',x+(i-1)*28*U+Math.sin(hp*6+i)*7*U,headY-headR*1.15-hp*64*U);
+      c.globalAlpha=1;
+    }
+  }
+}
+
+/* ============================================================
+   PALETTE — every button is a PICTURE
+   ============================================================ */
+const TABS=[
+  {id:'base', label:'CONE'},
+  {id:'scoop',label:'SCOOPS'},
+  {id:'sauce',label:'SAUCE'},
+  {id:'top',  label:'TOPPING'}
+];
+function tabItems(t){ return t==='base'?BASES:t==='scoop'?FLAVORS:t==='sauce'?SAUCES:TOPPINGS; }
+
+function paintIngredient(cv,kind,item){
+  const m=sizeCanvas(cv); if(!m) return;
+  const c=cv.getContext('2d'), W=m.w, H=m.h;
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+  const U=H/58;
+  if(kind==='base'){
+    drawTreat(c,W/2,H*0.90,Math.min(W/70,H/98),{base:item.id,scoops:[]});
+  } else if(kind==='scoop'){
+    const R=Math.min(W,H)*0.33, cx=W/2, cy=H*0.52;
+    const g=c.createRadialGradient(cx-R*0.3,cy-R*0.35,R*0.15,cx,cy,R);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.26,item.col); g.addColorStop(1,item.col2);
+    c.fillStyle=g;
+    c.beginPath();
+    for(let a=0;a<Math.PI*2;a+=0.35){
+      const wob=1+Math.sin(a*3)*0.045;
+      const px=cx+Math.cos(a)*R*wob, py=cy+Math.sin(a)*R*wob;
+      a===0?c.moveTo(px,py):c.lineTo(px,py);
+    }
+    c.closePath(); c.fill();
+    drawFlavorMark(c,cx,cy,R,item);
+    c.globalAlpha=.4; c.fillStyle='#fff';
+    c.beginPath(); c.ellipse(cx-R*0.33,cy-R*0.38,R*0.3,R*0.19,-0.5,0,6.3); c.fill();
+    c.globalAlpha=1;
+  } else if(kind==='sauce'){
+    const R=Math.min(W,H)*0.31, cx=W/2, cy=H*0.55;
+    c.fillStyle='#fff6ee';
+    c.beginPath(); c.arc(cx,cy,R,0,6.3); c.fill();
+    c.strokeStyle='#e8d9cc'; c.lineWidth=Math.max(1,R*0.06); c.stroke();
+    if(item.id==='none'){
+      c.strokeStyle='#c9b6c4'; c.lineWidth=R*0.22; c.lineCap='round';
+      c.beginPath(); c.moveTo(cx-R*0.55,cy-R*0.55); c.lineTo(cx+R*0.55,cy+R*0.55); c.stroke();
+      c.beginPath(); c.moveTo(cx+R*0.55,cy-R*0.55); c.lineTo(cx-R*0.55,cy+R*0.55); c.stroke();
+      c.lineCap='butt';
+    } else {
+      c.fillStyle=item.col;
+      c.beginPath();
+      c.moveTo(cx-R*0.98,cy-R*0.12);
+      c.quadraticCurveTo(cx,cy-R*1.18,cx+R*0.98,cy-R*0.12);
+      c.quadraticCurveTo(cx+R*0.62,cy+R*0.30,cx+R*0.30,cy+R*0.04);
+      c.quadraticCurveTo(cx+R*0.05,cy+R*0.48,cx-R*0.22,cy+R*0.08);
+      c.quadraticCurveTo(cx-R*0.55,cy+R*0.44,cx-R*0.98,cy-R*0.12);
+      c.closePath(); c.fill();
+    }
+  } else {
+    const R=Math.min(W,H)*0.31, cx=W/2, cy=H*0.57;
+    c.fillStyle='#fff6ee';
+    c.beginPath(); c.arc(cx,cy,R,0,6.3); c.fill();
+    c.strokeStyle='#e8d9cc'; c.lineWidth=Math.max(1,R*0.06); c.stroke();
+    if(item.id==='none'){
+      c.strokeStyle='#c9b6c4'; c.lineWidth=R*0.22; c.lineCap='round';
+      c.beginPath(); c.moveTo(cx-R*0.55,cy-R*0.55); c.lineTo(cx+R*0.55,cy+R*0.55); c.stroke();
+      c.beginPath(); c.moveTo(cx+R*0.55,cy-R*0.55); c.lineTo(cx-R*0.55,cy+R*0.55); c.stroke();
+      c.lineCap='butt';
+    } else {
+      drawTopping(c,cx,cy,cy-R*0.8,R,R/26,item.id);
+    }
+  }
+}
+
+function renderItems(){
+  const items=tabItems(S.tab), b=S.build;
+  $('itemRow').innerHTML=items.map(it=>{
+    let on=false;
+    if(S.tab==='base') on=b.base===it.id;
+    else if(S.tab==='scoop') on=b.scoops.includes(it.id);
+    else if(S.tab==='sauce') on=(b.sauce||'none')===it.id;
+    else on=(b.topping||'none')===it.id;
+    return '<button class="item'+(on?' picked':'')+'" type="button" data-id="'+it.id+
+      '"><canvas></canvas><span class="nm">'+it.name+'</span></button>';
+  }).join('');
+  $('itemRow').querySelectorAll('.item').forEach((el,i)=>{
+    el.addEventListener('click',()=>tapItem(items[i].id));
+  });
+  paintItems();
+}
+/* repaint only — canvases stretch in landscape, so they must be
+   redrawn when the column resizes, without rebuilding the markup */
+function paintItems(){
+  const items=tabItems(S.tab);
+  const kind=S.tab==='base'?'base':S.tab==='scoop'?'scoop':S.tab==='sauce'?'sauce':'top';
+  $('itemRow').querySelectorAll('.item').forEach((el,i)=>{
+    if(!items[i]) return;
+    const cv=el.querySelector('canvas'); if(cv) paintIngredient(cv,kind,items[i]);
+  });
+}
+/* the four order steps, each a picture with its own tick */
+function stepCells(){
+  const o=S.cust?S.cust.order:null;
+  if(!o) return [];
+  const pm=partMatch();
+  return [
+    {k:'base', kind:'base', item:byId(BASES,o.base), ok:pm.base, cap:'CONE'},
+    {k:'scoop',kind:'scoop',item:null, ok:pm.scoops, cap:'SCOOPS', scoops:o.scoops},
+    {k:'sauce',kind:'sauce',item:byId(SAUCES,o.sauce), ok:pm.sauce, cap:'SAUCE'},
+    {k:'top',  kind:'top',  item:byId(TOPPINGS,o.topping), ok:pm.topping, cap:'TOP'}
+  ];
+}
+function renderSteps(){
+  const cells=stepCells();
+  if(!cells.length){ $('stepRow').innerHTML=''; return; }
+  $('stepRow').innerHTML=cells.map(c=>
+    '<div class="stepCell'+(c.ok?' ok':'')+(S.tab===c.k?' on':'')+
+    '" data-k="'+c.k+'" role="button" tabindex="0"><canvas></canvas>'+
+    '<span class="cap">'+c.cap+'</span><span class="tick">✓</span></div>').join('');
+  $('stepRow').querySelectorAll('.stepCell').forEach((el,i)=>{
+    el.addEventListener('click',()=>{ S.tab=cells[i].k; renderSteps(); renderItems(); });
+  });
+  paintSteps();
+}
+/* painting is separate from markup so it can be redone on resize
+   without rebuilding the DOM */
+function paintSteps(){
+  const cells=stepCells();
+  const els=$('stepRow').querySelectorAll('.stepCell');
+  els.forEach((el,i)=>{
+    const c=cells[i]; if(!c) return;
+    const cv=el.querySelector('canvas'); if(!cv) return;
+    if(c.k==='scoop'){
+      const m=sizeCanvas(cv); if(!m) return;
+      const ctx=cv.getContext('2d'), W=m.w,H=m.h;
+      ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
+      const n=c.scoops.length;
+      const R=Math.min(H/(n*1.45+0.7), W*0.36);
+      c.scoops.forEach((fid,k)=>{
+        const f=byId(FLAVORS,fid);
+        const cy=H-R*1.05-k*R*1.42;
+        const g=ctx.createRadialGradient(W/2-R*0.3,cy-R*0.35,R*0.15,W/2,cy,R);
+        g.addColorStop(0,'#fff'); g.addColorStop(0.26,f.col); g.addColorStop(1,f.col2);
+        ctx.fillStyle=g;
+        ctx.beginPath(); ctx.arc(W/2,cy,R,0,6.3); ctx.fill();
+        drawFlavorMark(ctx,W/2,cy,R,f);
+      });
+    } else {
+      paintIngredient(cv,c.kind,c.item);
+    }
+  });
+}
+
+function renderAll(){
+  renderItems(); renderSteps();
+  const pm=partMatch();
+  $('wantBox').classList.toggle('matched',pm.all&&!!S.build.base);
+  $('custName').textContent=S.cust?S.cust.name:'—';
+  drawMine();
+  syncActions();
+}
+function syncActions(){
+  const pm=partMatch();
+  const can=S.phase==='serving'&&!!S.build.base;
+  $('serveBtn').disabled=!can;
+  $('serveBtn').classList.toggle('ready',can&&pm.all);
+  $('undoBtn').disabled=S.phase!=='serving';
+  $('clearBtn').disabled=S.phase!=='serving';
+}
+function syncHud(){
+  $('dayNum').textContent=S.day;
+  $('servedNum').textContent=S.served;
+  $('heartNum').textContent=S.hearts;
+}
+
+/* ============================================================
+   TITLE ART
+   ============================================================ */
+function paintTruckPick(){
+  $('truckPick').innerHTML=TRUCKS.map((t,i)=>
+    '<button class="tp'+(i===S.truckIdx?' on':'')+'" type="button" data-i="'+i+
+    '"><canvas></canvas><span class="tn">'+t.name+'</span></button>').join('');
+  $('truckPick').querySelectorAll('.tp').forEach((el,i)=>{
+    el.addEventListener('click',()=>{ S.truckIdx=i; S.truck=TRUCKS[i]; paintTruckPick(); });
+    paintTruck(el.querySelector('canvas'),TRUCKS[i]);
+  });
+}
+function paintTruck(cv,T){
+  const m=sizeCanvas(cv); if(!m) return;
+  const c=cv.getContext('2d'), W=m.w,H=m.h,U=H/44;
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+  const cx=W*0.5, gy=H*0.80, bw=W*0.86, bh=H*0.50;
+  c.globalAlpha=.14; c.fillStyle='#000';
+  c.beginPath(); c.ellipse(cx,gy+2*U,bw*0.46,3*U,0,0,6.3); c.fill();
+  c.globalAlpha=1;
+  const bg=c.createLinearGradient(0,gy-bh,0,gy);
+  bg.addColorStop(0,T.trim); bg.addColorStop(0.42,T.body); bg.addColorStop(1,T.body);
+  c.fillStyle=bg; rr(c,cx-bw/2,gy-bh,bw,bh,5*U); c.fill();
+  c.fillStyle='#fffdfa'; rr(c,cx-bw*0.40,gy-bh*0.78,bw*0.40,bh*0.46,3*U); c.fill();
+  c.fillStyle=T.roof; rr(c,cx-bw*0.52,gy-bh-3*U,bw*0.78,4*U,2*U); c.fill();
+  const coneX=cx-bw*0.22, coneY=gy-bh-4*U;
+  c.fillStyle='#e0a862';
+  c.beginPath(); c.moveTo(coneX,coneY); c.lineTo(coneX-5*U,coneY-11*U);
+  c.lineTo(coneX+5*U,coneY-11*U); c.closePath(); c.fill();
+  c.fillStyle='#fff0f5'; c.beginPath(); c.arc(coneX,coneY-14*U,6*U,0,6.3); c.fill();
+  for(const s of [-1,1]){
+    c.fillStyle='#3d3340';
+    c.beginPath(); c.arc(cx+s*bw*0.30,gy,6*U,0,6.3); c.fill();
+    c.fillStyle='#f4eef2';
+    c.beginPath(); c.arc(cx+s*bw*0.30,gy,2.6*U,0,6.3); c.fill();
+  }
+}
+function paintHowTo(){
+  let cv=$('how1'), m=sizeCanvas(cv);
+  if(m){
+    const c=cv.getContext('2d'),W=m.w,H=m.h;
+    c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+    c.fillStyle='#fffdfa'; rr(c,W*0.12,H*0.10,W*0.76,H*0.80,W*0.1); c.fill();
+    c.strokeStyle='#ffc2da'; c.lineWidth=2.4; c.stroke();
+    drawTreat(c,W/2,H*0.82,H/98,{base:'sugar',scoops:['strawberry'],sauce:null,topping:'cherry'});
+  }
+  cv=$('how2'); m=sizeCanvas(cv);
+  if(m){
+    const c=cv.getContext('2d'),W=m.w,H=m.h,R=H*0.24;
+    c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+    const f=byId(FLAVORS,'mint');
+    const g=c.createRadialGradient(W/2-R*0.3,H*0.42-R*0.35,R*0.15,W/2,H*0.42,R);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.26,f.col); g.addColorStop(1,f.col2);
+    c.fillStyle=g; c.beginPath(); c.arc(W/2,H*0.42,R,0,6.3); c.fill();
+    drawFlavorMark(c,W/2,H*0.42,R,f);
+    c.fillStyle='#4a3350';
+    c.beginPath(); c.ellipse(W*0.60,H*0.74,W*0.085,H*0.16,-0.35,0,6.3); c.fill();
+  }
+  cv=$('how3'); m=sizeCanvas(cv);
+  if(m){
+    const c=cv.getContext('2d'),W=m.w,H=m.h;
+    c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H);
+    c.fillStyle='#e2f7ec'; c.beginPath(); c.arc(W/2,H/2,H*0.36,0,6.3); c.fill();
+    c.strokeStyle='#5cbd8a'; c.lineWidth=H*0.13; c.lineCap='round'; c.lineJoin='round';
+    c.beginPath();
+    c.moveTo(W*0.34,H*0.52); c.lineTo(W*0.46,H*0.64); c.lineTo(W*0.68,H*0.38);
+    c.stroke(); c.lineCap='butt';
+  }
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let last=performance.now();
+function frame(now){
+  const dt=Math.max(0,Math.min(0.05,(now-last)/1000)); last=now;
+  S.t+=dt;
+  if(S.pulseT>0) S.pulseT=Math.max(0,S.pulseT-dt*3.2);
+  if(S.cust){
+    S.cust.arrive=Math.min(1,(S.cust.arrive||0)+dt*2.2);
+    if(S.cust.bounce>0) S.cust.bounce=Math.max(0,S.cust.bounce-dt*1.1);
+  }
+  if(S.phase==='reacting'){
+    S.react.t+=dt;
+    S.handoff=Math.min(1,S.handoff+dt*1.5);
+    if(S.react.t>2.0) afterReaction();
+  }
+  drawScene();
+  if(S.phase==='serving'||S.phase==='reacting') drawMine();
+  syncHud();
+  requestAnimationFrame(frame);
+}
+
+/* keep the stretchy step canvases crisp when the layout changes */
+function relayout(){
+  sizeCanvas(sCv); drawMine(); paintSteps(); paintItems();
+}
+if(typeof ResizeObserver!=='undefined'){
+  const ro=new ResizeObserver(()=>{ drawMine(); paintSteps(); paintItems(); });
+  ro.observe($('orderPanel'));
+  ro.observe($('palette'));
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function openShop(){
+  $('title').classList.add('hidden');
+  S.phase='serving'; newCustomer(); syncHud();
+  requestAnimationFrame(relayout);
+}
+$('openBtn').addEventListener('click',openShop);
+$('nextDayBtn').addEventListener('click',nextDay);
+$('serveBtn').addEventListener('click',serve);
+$('undoBtn').addEventListener('click',undo);
+$('clearBtn').addEventListener('click',clearBuild);
+document.addEventListener('keydown',e=>{
+  if(S.phase!=='serving') return;
+  if(e.key==='Enter'&&S.build.base){ e.preventDefault(); serve(); }
+  if(e.key==='Backspace'){ e.preventDefault(); undo(); }
+  const n=parseInt(e.key,10);
+  if(n>=1&&n<=6){ const items=tabItems(S.tab); if(items[n-1]) tapItem(items[n-1].id); }
+});
+window.addEventListener('resize',relayout);
+window.addEventListener('orientationchange',()=>setTimeout(relayout,120));
+
+paintTruckPick(); paintHowTo(); renderItems(); renderSteps(); syncActions(); syncHud();
+requestAnimationFrame(frame);
+
+window.__IC={S,BASES,FLAVORS,SAUCES,TOPPINGS,SPECIES,TRUCKS,makeOrder,newCustomer,
+  tapItem,undo,clearBuild,serve,partMatch,afterReaction,openShop,nextDay,
+  CUSTOMERS_PER_DAY,MAX_SCOOPS,tabItems,stepCells};
+})();
+</script>
+</body>
+</html>
