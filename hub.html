@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kid Games Hub</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #87CEEB 0%, #E0F7FA 50%, #FFF9C4 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      color: #1565C0;
+      text-shadow: 2px 2px 0 #FFF, 4px 4px 0 rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 1.3rem;
+      color: #546E7A;
+    }
+
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+    }
+
+    .game-card {
+      background: white;
+      border-radius: 24px;
+      padding: 30px 20px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      transition: all 0.3s ease;
+      border: 4px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 280px;
+    }
+
+    .game-card:hover {
+      transform: translateY(-12px) scale(1.03);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      border-color: #42A5F5;
+    }
+
+    .game-card:active {
+      transform: translateY(-4px) scale(1.01);
+    }
+
+    .icon {
+      font-size: 5.5rem;
+      line-height: 1;
+      margin-bottom: 18px;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
+    }
+
+    .game-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #0D47A1;
+      margin-bottom: 10px;
+    }
+
+    .game-desc {
+      font-size: 1.05rem;
+      color: #607D8B;
+      line-height: 1.4;
+    }
+
+    /* Fun color accents on hover */
+    .game-card:nth-child(1):hover { border-color: #FF7043; }
+    .game-card:nth-child(2):hover { border-color: #29B6F6; }
+    .game-card:nth-child(3):hover { border-color: #EF5350; }
+    .game-card:nth-child(4):hover { border-color: #66BB6A; }
+    .game-card:nth-child(5):hover { border-color: #AB47BC; }
+    .game-card:nth-child(6):hover { border-color: #EC407A; }
+    .game-card:nth-child(7):hover { border-color: #26C6DA; }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #546E7A;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 2.2rem; }
+      .icon { font-size: 4.5rem; }
+      .game-title { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🚀 Kid Games Hub ✈️</h1>
+    <p class="subtitle">Click a game to play!</p>
+  </header>
+
+  <main class="games-grid">
+    <!-- Apex Ascent - Rocket -->
+    <a href="https://eclipse1482.github.io/kid-games/apex-ascent.html" class="game-card">
+      <div class="icon">🚀</div>
+      <h2 class="game-title">Apex Ascent</h2>
+      <p class="game-desc">Launch your rocket and zoom into space!</p>
+    </a>
+
+    <!-- Busy Skies - Airport Manager -->
+    <a href="https://eclipse1482.github.io/kid-games/busy-skies.html" class="game-card">
+      <div class="icon">🛫</div>
+      <h2 class="game-title">Busy Skies</h2>
+      <p class="game-desc">Manage the airport and keep the planes flying!</p>
+    </a>
+
+    <!-- Fire Rescue - Fire Truck -->
+    <a href="https://eclipse1482.github.io/kid-games/fire-rescue.html" class="game-card">
+      <div class="icon">🚒</div>
+      <h2 class="game-title">Fire Rescue</h2>
+      <p class="game-desc">Drive the fire truck and save the day!</p>
+    </a>
+
+    <!-- Fuel Hero - Fuel Truck / Gas Pump -->
+    <a href="https://eclipse1482.github.io/kid-games/fuel-hero.html" class="game-card">
+      <div class="icon">⛽</div>
+      <h2 class="game-title">Fuel Hero</h2>
+      <p class="game-desc">Drive the fuel truck and refill the airplanes!</p>
+    </a>
+
+    <!-- Pit Stop Sprint - Racing -->
+    <a href="https://eclipse1482.github.io/kid-games/pit-stop-sprint.html" class="game-card">
+      <div class="icon">🏎️</div>
+      <h2 class="game-title">Pit Stop Sprint</h2>
+      <p class="game-desc">Race fast and make quick pit stops!</p>
+    </a>
+
+    <!-- Scoop Street - Ice Cream Truck -->
+    <a href="https://eclipse1482.github.io/kid-games/scoop-street.html" class="game-card">
+      <div class="icon">🍦</div>
+      <h2 class="game-title">Scoop Street</h2>
+      <p class="game-desc">Drive the ice cream truck and scoop up fun!</p>
+    </a>
+
+    <!-- Sky Hopper - Airplane Pilot -->
+    <a href="https://eclipse1482.github.io/kid-games/sky-hopper.html" class="game-card">
+      <div class="icon">✈️</div>
+      <h2 class="game-title">Sky Hopper</h2>
+      <p class="game-desc">Fly the airplane high in the sky!</p>
+    </a>
+  </main>
+
+  <footer>
+    Have fun playing! 🌟
+  </footer>
+</body>
+</html>
