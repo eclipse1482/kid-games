@@ -25,6 +25,8 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
 .st{display:flex;align-items:baseline;gap:5px;font-size:10px;font-weight:900;letter-spacing:.6px;color:var(--dim);white-space:nowrap}
 .st b{font-size:clamp(13px,2.4vh,17px);color:var(--text)}
 .st.best b{color:var(--amber)}
+#saved{font-size:9px;font-weight:900;letter-spacing:.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap}
+#saved.on{opacity:.9}
 #mute{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#1e150c;font-size:16px;flex:none}
 #mapWrap{position:relative;min-height:0;min-width:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#6b4528}
 #map{display:block;width:100%;height:100%;touch-action:none;cursor:pointer}
@@ -91,10 +93,14 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
 /* overlays */
 .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:10px;background:#0d0804d9;backdrop-filter:blur(4px)}
 .overlay.hidden{display:none}
+#confirm{z-index:40}
 .card{width:min(580px,100%);max-height:calc(100dvh - 20px);overflow:auto;padding:16px 18px;text-align:center;
   background:linear-gradient(180deg,#3a2817,#1f150c);border:1px solid #ffffff26;border-radius:20px;box-shadow:0 24px 70px #000c}
+.card.small{width:min(440px,100%)}
 .card h1{margin:0;font-size:clamp(22px,5vw,30px);letter-spacing:1.5px;color:var(--amber)}
 .card .sub{color:var(--dim);font-size:12.5px;margin:5px 0 8px;line-height:1.4}
+.cfMsg{color:var(--text);font-size:14px;font-weight:700;margin:8px 0 4px;line-height:1.45}
+.cfMsg b{color:var(--amber)}
 .secTitle{font-size:9.5px;font-weight:900;letter-spacing:1.2px;color:var(--dim);margin:10px 0 6px}
 .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .mode{border:2px solid #ffffff1a;border-radius:13px;background:#1f150c;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -107,6 +113,9 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
 .goBtn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:13px;font-weight:900;font-size:15px;letter-spacing:1px;
   color:#06210f;background:linear-gradient(180deg,#8dffb4,#2fc76a);box-shadow:0 6px 20px #2fc76a4d}
 .goBtn.alt{background:#4a3624;color:var(--text);box-shadow:none;margin-top:7px}
+.goBtn.danger{background:linear-gradient(180deg,#ff8a7a,#c8392f);color:#fff;box-shadow:none;margin-top:7px}
+#contBox .goBtn{margin-top:4px}
+.contSub{font-size:10.5px;color:var(--dim);font-weight:800;margin-top:5px}
 .sumStats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 2px}
 .sumStats div{background:#1f150c;border:1px solid #ffffff1a;border-radius:12px;padding:8px 4px}
 .sumStats b{display:block;font-size:20px;color:var(--amber)}
@@ -130,12 +139,13 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
 <body>
 <main id="app">
   <header id="hud">
-    <div class="brand">ANT <span>HILL</span> <small class="ver">v4</small></div>
+    <div class="brand">ANT <span>HILL</span> <small class="ver">v5</small></div>
     <div id="stats">
       <div class="st">YEAR <b id="sYr">1</b></div>
       <div class="st">ANTS <b id="sAn">0</b></div>
       <div class="st best">BEST <b id="sBe">0</b></div>
     </div>
+    <span id="saved">✓ SAVED</span>
     <button id="mute" type="button" aria-label="Sound on or off">🔊</button>
   </header>
   <section id="mapWrap"><canvas id="map" aria-label="Ant colony"></canvas><div id="toast"></div></section>
@@ -167,12 +177,13 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
   <div class="card">
     <h1>🐜 ANT HILL</h1>
     <div class="sub">You are the boss of a brand new ant colony! Gather food and water, dig a bigger home, grow your colony and get ready for winter.</div>
-    <div class="secTitle">HOW HARD?</div>
+    <div id="contBox"></div>
+    <div class="secTitle" id="modeTitle">HOW HARD?</div>
     <div class="modes" id="modes"></div>
     <div class="secTitle howT">HOW TO PLAY</div>
     <div class="how" id="how"></div>
     <button class="goBtn" id="startBtn" type="button">START THE COLONY</button>
-    <div class="cardVer">Version 4</div>
+    <div class="cardVer">Version 5 · your colony saves automatically</div>
   </div>
 </div>
 <div class="overlay hidden" id="summary">
@@ -182,6 +193,14 @@ svg.ic{width:100%;height:100%;display:block;pointer-events:none}
     <div class="sumStats" id="sumStats"></div>
     <button class="goBtn" id="keepBtn" type="button">START SPRING</button>
     <button class="goBtn alt" id="newBtn" type="button">NEW COLONY</button>
+  </div>
+</div>
+<div class="overlay hidden" id="confirm">
+  <div class="card small">
+    <h1 style="color:#ff8a7a">⚠️ START OVER?</h1>
+    <div class="cfMsg" id="cfMsg"></div>
+    <button class="goBtn" id="cfNo" type="button">KEEP MY COLONY</button>
+    <button class="goBtn danger" id="cfYes" type="button">YES, START A NEW COLONY</button>
   </div>
 </div>
 <script>
@@ -264,6 +283,12 @@ const fmtT=s=>{ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+':'+String(s
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);
   c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
 const srcY=s=>s.y==null?SURF:s.y;
+function onTap(el,fn){
+  let d=null;
+  el.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; d={x:e.clientX,y:e.clientY,id:e.pointerId}; });
+  el.addEventListener('pointerup',e=>{ if(!d||d.id!==e.pointerId) return; const m=Math.hypot(e.clientX-d.x,e.clientY-d.y); d=null; if(m<16) fn(e); });
+  el.addEventListener('pointercancel',()=>d=null);
+}
 
 /* ============================================================
    SOUND
@@ -311,10 +336,10 @@ const sfx={
 let G=null, modeKey='normal';
 function newGame(){
   const M=MODES[modeKey];
-  G={M,year:1,phase:'season',season:0,st:0,t:0,food:14,water:14,rooms:2,digWork:0,egg:null,
+  G={M,modeKey,year:1,phase:'season',season:0,st:0,t:0,food:14,water:14,rooms:2,digWork:0,egg:null,
      ants:[],sources:[],floats:[],flakes:[],rains:[],nextId:1,best:START_ANTS,lostTotal:0,
      digJob:{key:'dig',p:1,touched:true},nurseJob:{key:'nurse',p:0},dropT:2,rainT:10,allocT:0,starveT:0,warned:{},paused:false,winter:null,
-     hose:null,storeWarnT:0};
+     hose:null,storeWarnT:0,saveT:4};
   G.hose={id:G.nextId++,kind:'water',hose:true,type:'hose',name:'Hose Drip',x:HOSE_X,amt:10,max:16,p:0,fall:1};
   G.sources.push(G.hose);
   for(let i=0;i<START_ANTS;i++){ const R=roomSpot(i%2); G.ants.push(makeAnt(R.x,R.y)); }
@@ -329,6 +354,52 @@ const timeToWinter=()=>(3-G.season)*SEASON_LEN-G.st;
 function roomSpot(i,spread){ const R=SLOTS[i]; const s=spread==null?.7:spread; return {x:R.x+rnd(-s,s)*RX,y:R.y+rnd(-.25,.35)*RY*(s?1:0)}; }
 const springInRoom=i=>G.sources.some(s=>s.spring&&s.room===i);
 const findsSpring=S=>S&&S.r===SPRING_ROW&&!G.sources.some(s=>s.spring);
+
+/* ============================================================
+   SAVE & LOAD — kept in this browser (localStorage)
+   ============================================================ */
+const SAVE_KEY='ant-hill-save';
+function saveGame(){
+  if(!G||G.phase==='over') return false;
+  try{
+    const jk=j=>!j?null:j===G.digJob?'dig':j===G.nurseJob?'nurse':'s'+j.id;
+    const S={v:1,mode:G.modeKey,year:G.year,phase:G.phase,season:G.season,st:G.st,t:G.t,food:G.food,water:G.water,
+      rooms:G.rooms,digWork:G.digWork,egg:G.egg,best:G.best,lostTotal:G.lostTotal,
+      dig:G.digJob.p,nurse:G.nurseJob.p,nurseT:!!G.nurseJob.touched,dropT:G.dropT,rainT:G.rainT,warned:G.warned,winter:G.winter,nextId:G.nextId,
+      sources:G.sources.map(s=>Object.assign({},s)),
+      ants:G.ants.map(a=>({x:+a.x.toFixed(1),y:+a.y.toFixed(1),h:+a.h.toFixed(2),carry:a.carry,ck:a.ck,job:jk(a.job),ofs:+a.ofs.toFixed(2)})),
+      saved:Date.now()};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(S));
+    return true;
+  }catch(e){ return false; }
+}
+function loadSave(){
+  try{
+    const S=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+    if(!S||S.v!==1||!MODES[S.mode]||!Array.isArray(S.ants)||!S.ants.length||!Array.isArray(S.sources)) return null;
+    return S;
+  }catch(e){ return null; }
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+function resumeGame(S){
+  modeKey=S.mode; newGame();
+  Object.assign(G,{year:S.year,season:clamp(S.season|0,0,2),st:S.st||0,t:S.t||0,food:S.food,water:S.water,rooms:clamp(S.rooms|0,2,SLOTS.length),
+    digWork:S.digWork||0,egg:S.egg||null,best:S.best||S.ants.length,lostTotal:S.lostTotal||0,dropT:S.dropT??3,rainT:S.rainT??8,warned:S.warned||{}});
+  G.digJob.p=S.dig?1:0; G.nurseJob.p=S.nurse?1:0; G.nurseJob.touched=S.nurseT;
+  G.sources=S.sources.map(s=>{ s=Object.assign({},s); if(s.grow>0){ s.amt+=s.grow; s.grow=0; } return s; });
+  G.hose=G.sources.find(s=>s.hose);
+  if(!G.hose){ G.hose={id:9e6,kind:'water',hose:true,type:'hose',name:'Hose Drip',x:HOSE_X,amt:6,max:16,p:0,fall:1}; G.sources.push(G.hose); }
+  const byKey=k=>k==='dig'?G.digJob:k==='nurse'?G.nurseJob:k?(G.sources.find(s=>'s'+s.id===k)||null):null;
+  G.ants=S.ants.map(a=>Object.assign(makeAnt(a.x,a.y),{h:a.h||0,carry:a.carry||0,ck:a.ck||'',job:byKey(a.job),ofs:a.ofs??rnd(-1,1),wait:rnd(0,1)}));
+  G.nextId=Math.max(S.nextId||0,G.nextId)+1;
+  if(S.phase==='winter'&&S.winter){ G.phase='winter'; G.winter=S.winter; for(const a of G.ants){ a.job=null; a.carry=0; } }
+  else if(S.phase==='summary'){ G.year=S.year; nextYear(); }
+  else G.phase='season';
+  syncJobsKey='';
+}
+function flashSaved(){ const el=$('saved'); el.classList.add('on'); clearTimeout(flashSaved.t); flashSaved.t=setTimeout(()=>el.classList.remove('on'),1200); }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveGame(); });
+window.addEventListener('pagehide',()=>saveGame());
 
 /* ============================================================
    SOURCES — people drop food, rain makes puddles, deep spring
@@ -394,7 +465,6 @@ function allocate(){
   const N=G.ants.length, W=jobs.length, tgt=new Map();
   if(W>0){
     const base=Math.floor(N/W); let extra=N-base*W;
-    // leftover ants go to the jobs that already have the most helpers (less shuffling)
     const cur0=new Map(); for(const a of G.ants) if(a.job) cur0.set(a.job,(cur0.get(a.job)||0)+1);
     const order=jobs.slice().sort((a,b)=>(cur0.get(b)||0)-(cur0.get(a)||0));
     for(const j of order){ tgt.set(j,base+(extra>0?1:0)); extra--; }
@@ -593,6 +663,7 @@ function endWinter(){
   G.phase='summary'; G.paused=true;
   const alive=G.ants.length;
   if(!alive){ gameOver(); return; }
+  saveGame(); flashSaved();
   $('sumH').textContent='SPRING IS HERE!';
   $('sumSub').textContent=deaths?('Brrr! The stores ran low and '+deaths+' ant'+(deaths>1?'s':'')+' didn\u2019t make it. Store more next year!')
     :'Your whole colony made it through winter of Year '+G.year+'. Great job, boss!';
@@ -607,7 +678,7 @@ function nextYear(){
   toast('Year '+G.year+' — SPRING! Time to get busy.');
 }
 function gameOver(){
-  G.phase='over'; G.paused=true;
+  G.phase='over'; G.paused=true; clearSave();
   $('sumH').textContent='THE COLONY IS GONE';
   $('sumSub').textContent='Your ants ran out of food or water. Try storing more before winter!';
   $('sumStats').innerHTML=stat(G.year-1,'WINTERS SURVIVED')+stat(G.best,'BIGGEST COLONY')+stat(G.lostTotal,'ANTS LOST')+stat(G.rooms,'ROOMS DUG');
@@ -817,7 +888,7 @@ function targets(){
   for(const s of G.sources){
     if(!sourceReady(s)) continue;
     let b;
-    if(s.spring){ const q=toS(s.x+44,s.y-RY*.55); b={x:q.x,y:q.y,r:12*u}; }       // beside the pool, not on it
+    if(s.spring){ const q=toS(s.x+44,s.y-RY*.55); b={x:q.x,y:q.y,r:12*u}; }
     else { const q=toS(s.x,SURF); b={x:q.x,y:q.y-Math.max(46*V.s,26*u)-14*u,r:13*u}; }
     const cy=s.spring?s.y-RY*.4:SURF-12;
     out.push({j:s,src:true,b,ring:{x:s.x,y:cy,rx:s.spring?40:30,ry:s.spring?22:24},hit:{x:s.x+(s.spring?18:0),y:cy,rx:s.spring?RX:34,ry:s.spring?RY:30}});
@@ -840,17 +911,14 @@ function drawBubbles(){
     if(t.src&&!j.spring){ cx.beginPath(); cx.moveTo(b.x-4*u,b.y+r*.8); cx.lineTo(b.x,b.y+r+6*u); cx.lineTo(b.x+4*u,b.y+r*.8); cx.closePath(); cx.fillStyle=fill; cx.fill(); }
     cx.beginPath(); cx.arc(b.x,b.y,r,0,6.3); cx.fillStyle=fill; cx.fill();
     cx.strokeStyle=on?'#ffffff':'#00000040'; cx.lineWidth=(on?2.4:1.6)*u; cx.stroke();
-    // ring = how much is left (food & water) or progress (dig & babies)
     const k=bubbleRing(j);
     if(k!=null){ const R2=r+4.5*u;
       cx.lineWidth=3*u; cx.strokeStyle='#00000070'; cx.beginPath(); cx.arc(b.x,b.y,R2,0,6.3); cx.stroke();
       if(k>0){ cx.strokeStyle=j.kind==='water'?'#9fd8ff':j.kind==='food'?'#ffd27a':'#ffe07a';
         cx.beginPath(); cx.arc(b.x,b.y,R2,-Math.PI/2,-Math.PI/2+6.283*k); cx.stroke(); } }
-    // icon: tap hint for new things, an ant when ON, what it is when OFF
     if(fresh) drawIcon(cx,'tap',b.x,b.y,r*1.3,'#2a1c00');
     else if(on) drawIcon(cx,'ant',b.x,b.y,r*1.4,'#ffffff');
     else drawIcon(cx,t.src?j.kind:(j===G.digJob?'dig':'egg'),b.x,b.y,r*1.2,'#6b5640');
-    // how many ants are on it
     if(on){ const n=counts.get(j)||0, bx=b.x+r*.92, by=b.y-r*.92, br=7.5*u;
       cx.beginPath(); cx.arc(bx,by,br,0,6.3); cx.fillStyle='#1a0f08'; cx.fill(); cx.strokeStyle='#ffffff'; cx.lineWidth=1.5*u; cx.stroke();
       sText(String(n),bx,by+.5*u,(n>9?8.5:10)*u,'#ffffff'); }
@@ -866,7 +934,6 @@ function drawFloats(){
 
 /* ============================================================
    INPUT — every map click/tap turns that job ON or OFF
-   (pointer events = mouse, pen and touch all the same)
    ============================================================ */
 cv.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0) return;
@@ -928,7 +995,6 @@ function buildJobs(){
   });
   $('restN').textContent=G.ants.filter(a=>!a.job).length;
 }
-// the whole row is the switch: survives long presses, ignores scroll drags, works with mouse & touch
 (function(){
   let down=null;
   jobsEl.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; const row=e.target.closest('.job');
@@ -979,24 +1045,60 @@ let toastT=null;
 function toast(t,warn){ const el=$('toast'); el.textContent=t; el.className='on'+(warn?' warn':''); clearTimeout(toastT); toastT=setTimeout(()=>el.className='',2400); }
 
 /* ============================================================
+   CONFIRM "START OVER?" DIALOG
+   ============================================================ */
+let cfYesFn=null;
+function askStartOver(info,onYes){
+  $('cfMsg').innerHTML='Your <b>Year '+info.year+'</b> colony with <b>'+info.ants+' ant'+(info.ants===1?'':'s')+'</b> will be gone forever.<br>Are you sure?';
+  cfYesFn=onYes; $('confirm').classList.remove('hidden'); sfx.warn();
+}
+onTap($('cfNo'),()=>{ cfYesFn=null; $('confirm').classList.add('hidden'); });
+onTap($('cfYes'),()=>{ const f=cfYesFn; cfYesFn=null; $('confirm').classList.add('hidden'); if(f) f(); });
+const saveInfo=S=>({year:S.phase==='summary'?S.year+1:S.year,ants:S.ants.length});
+
+/* ============================================================
    MENUS
    ============================================================ */
+function agoText(ms){ const m=Math.round((Date.now()-ms)/60000); if(m<1) return 'just now'; if(m<60) return m+' min ago'; const h=Math.round(m/60); if(h<24) return h+' hr ago'; const d=Math.round(h/24); return d+' day'+(d>1?'s':'')+' ago'; }
 function buildTitle(){
+  const S=loadSave();
+  if(S){ const I=saveInfo(S);
+    $('contBox').innerHTML='<button class="goBtn" id="contBtn" type="button">▶ CONTINUE · YEAR '+I.year+' · '+I.ants+' ANTS</button>'+
+      '<div class="contSub">'+MODES[S.mode].name+' colony · saved '+agoText(S.saved||Date.now())+'</div>';
+    onTap($('contBtn'),()=>{ initAudio(); const S2=loadSave(); if(!S2) return buildTitle(); resumeGame(S2); $('title').classList.add('hidden'); toast('Welcome back, boss! Year '+G.year+'.'); });
+    $('startBtn').className='goBtn alt'; $('startBtn').textContent='START A NEW COLONY';
+    $('modeTitle').textContent='HOW HARD? (for a new colony)';
+  } else {
+    $('contBox').innerHTML='';
+    $('startBtn').className='goBtn'; $('startBtn').textContent='START THE COLONY';
+    $('modeTitle').textContent='HOW HARD?';
+  }
   $('modes').innerHTML=Object.keys(MODES).map(k=>'<button class="mode'+(k===modeKey?' on':'')+'" type="button" data-k="'+k+'"><b>'+MODES[k].name+'</b><span>'+MODES[k].desc+'</span></button>').join('');
-  $('modes').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{ modeKey=b.dataset.k; buildTitle(); }));
+  $('modes').querySelectorAll('.mode').forEach(b=>onTap(b,()=>{ modeKey=b.dataset.k; $('modes').querySelectorAll('.mode').forEach(x=>x.classList.toggle('on',x===b)); }));
   $('how').innerHTML=[
     ['food','<b>Tap food &amp; water</b> to send ants. Tap again to stop. Ants share the work evenly.'],
     ['dig','<b>Dig rooms</b> for space &amp; storage. Reach the <b>deepest level</b> to find a spring.'],
     ['snow','<b>Fill the stores</b> past the white line before <b>winter</b> comes!']
   ].map(h=>'<div class="howI"><span class="hiI">'+svg(h[0])+'</span><span>'+h[1]+'</span></div>').join('');
 }
-$('startBtn').addEventListener('click',()=>{ initAudio(); newGame(); $('title').classList.add('hidden'); toast('Welcome, boss! Your ants are already digging.'); });
-$('keepBtn').addEventListener('click',()=>{ $('summary').classList.add('hidden'); nextYear(); });
-$('newBtn').addEventListener('click',()=>{ $('summary').classList.add('hidden'); G=null; $('title').classList.remove('hidden'); buildTitle(); });
-$('mute').addEventListener('click',()=>{ muted=!muted; $('mute').textContent=muted?'🔇':'🔊'; initAudio(); });
+function beginNew(){
+  initAudio(); clearSave(); newGame(); saveGame();
+  $('title').classList.add('hidden'); toast('Welcome, boss! Your ants are already digging.');
+}
+onTap($('startBtn'),()=>{
+  const S=loadSave();
+  if(S) askStartOver(saveInfo(S),beginNew); else beginNew();
+});
+onTap($('keepBtn'),()=>{ $('summary').classList.add('hidden'); nextYear(); saveGame(); });
+function toTitle(){ $('summary').classList.add('hidden'); G=null; buildTitle(); $('title').classList.remove('hidden'); }
+onTap($('newBtn'),()=>{
+  if(!G||G.phase==='over'){ toTitle(); return; }
+  askStartOver({year:G.year+1,ants:G.ants.length},()=>{ clearSave(); toTitle(); });
+});
+onTap($('mute'),()=>{ muted=!muted; $('mute').textContent=muted?'🔇':'🔊'; initAudio(); });
 
 /* ============================================================
-   LOOP
+   LOOP (autosaves every few seconds)
    ============================================================ */
 $('seBar').innerHTML='<i style="flex:1"></i><i style="flex:1"></i><i style="flex:1"></i><i style="flex:.3"></i>';
 [['mFood','food'],['mWater','water'],['mAnts','ant']].forEach(([id,ic])=>$(id).querySelector('.mi').innerHTML=svg(ic));
@@ -1005,13 +1107,16 @@ $('seIc').innerHTML=svg('sprout');
 let last=performance.now();
 function frame(now){
   const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=now;
-  if(G){ update(dt); buildJobs(); syncDash(); }
+  if(G){
+    update(dt); buildJobs(); syncDash();
+    if(G.phase==='season'||G.phase==='winter'){ G.saveT-=dt; if(G.saveT<=0){ G.saveT=5; saveGame(); } }
+  }
   draw();
   requestAnimationFrame(frame);
 }
 buildTitle();
 requestAnimationFrame(frame);
-window.__AH={get G(){return G},update,allocate,newGame,toggle,setMode:k=>modeKey=k,startWinter};
+window.__AH={get G(){return G},update,allocate,newGame,toggle,setMode:k=>modeKey=k,startWinter,saveGame,loadSave,resumeGame};
 })();
 </script>
 </body>
