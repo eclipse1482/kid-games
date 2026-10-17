@@ -35,11 +35,19 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 #tip.on{opacity:1}
 #tip.warn{background:#8a1c1ce6}
 #tray{min-height:0;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:6px}
-#parts{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:5px}
+#parts{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px}
+.grp{min-height:0;display:flex;flex-direction:column;gap:3px;border-radius:12px;padding:3px 4px 4px;border:2px solid transparent}
+.grp .gh{font-size:clamp(9px,1.6vh,11px);font-weight:900;letter-spacing:.8px;padding-left:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp .gt{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:4px}
+.grp.power{flex:1;background:#3a2a0c;border-color:#ffb30055}.grp.power .gh{color:#ffcc66}
+.grp.link{flex:1;background:#0e2a44;border-color:#40a9ff55}.grp.link .gh{color:#8fd0ff}
+.grp.use{flex:3;background:#10321f;border-color:#4cd18055}.grp.use .gh{color:#8ff0b4}
 .tile{border-radius:12px;background:#0d1626;border:2px solid #ffffff14;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;min-width:0;padding:2px;touch-action:none;cursor:grab}
 .tile canvas{width:100%;flex:1;min-height:0;object-fit:contain;pointer-events:none}
 .tile span{font-size:clamp(9px,1.7vh,12px);font-weight:900;color:var(--dim);white-space:nowrap;pointer-events:none}
 .tile.wig{animation:wig .4s 2}
+.tile.sel{border-color:var(--accent);background:#4a3c0c;box-shadow:0 0 0 2px var(--accent),0 0 14px #ffd54f99;animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
 @keyframes wig{25%{transform:rotate(-6deg) scale(1.05)}75%{transform:rotate(6deg) scale(1.05)}}
 #tools{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .tb{border-radius:12px;padding:6px 4px;font-weight:900;font-size:clamp(12px,2.2vh,15px);background:#2b3f5c;color:#fff;min-height:clamp(38px,7vh,50px)}
@@ -76,7 +84,9 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
   .brand{display:none}
   #main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
   #tray{height:min(27dvh,260px)}
-  #parts{grid-template-columns:repeat(5,minmax(0,1fr))}
+  #parts{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+  .grp.use{grid-column:1 / span 2}
+  .grp.use .gt{grid-template-columns:repeat(6,minmax(0,1fr))}
   #missions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 </style>
@@ -85,7 +95,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <main id="app">
   <header id="hud">
     <button class="hb" id="homeBtn" type="button" aria-label="Menu">🏠</button>
-    <div class="brand">⚡ SPARK LAB <small>v2</small></div>
+    <div class="brand">⚡ SPARK LAB <small>v3</small></div>
     <div id="title">PLAY LAB</div>
     <button class="hb" id="hintBtn" type="button" aria-label="Hint">💡</button>
     <button class="hb" id="sunBtn" type="button" aria-label="Day or night">☀️</button>
@@ -108,7 +118,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
     <button class="big blue" id="labBtn" type="button">🧪 PLAY LAB — build anything!</button>
     <div class="sec">⭐ MISSIONS</div>
     <div id="missions"></div>
-    <div class="ver">Version 2 · draw wires with your finger · drag parts onto the board</div>
+    <div class="ver">Version 3 · tap a part, then tap the board · draw wires with your finger</div>
   </div>
 </div>
 
@@ -341,7 +351,7 @@ function solve(){
   else { const sw=parts.filter(p=>p.t==='switch'&&!p.sw);
     for(const s of sw){ const {res:r2}=solveCore(parts,new Set([s])); if(parts.some(p=>LOADS.has(p.t)&&!p.on&&loadOn(p,r2.get(p)).on)){ tip='👆 The switch is OFF. Tap the switch to turn it ON!'; break; } } }
   if(!tip&&MODE==='mission'&&MI===5&&parts.some(p=>p.t==='bulb'&&p.on)&&!parts.some(p=>p.t==='bulb'&&p.lvl>=1.3)) tip='✨ It works! Can you make it SUPER bright? Try another battery!';
-  if(tip!==tipSig){ tipSig=tip; if(tip){ showTip(tip,warn); if(warn) sfx.warn(); } }
+  if(tip!==tipSig){ const was=tipSig; tipSig=tip; if(tip){ showTip(tip,warn); if(warn) sfx.warn(); } else if(was){ $('tip').className=''; } }
   if(MODE==='mission') checkGoals();
   if(MODE==='lab') saveLab();
 }
@@ -529,11 +539,23 @@ function drawIconTwo(c,w,h,lit){ const s=w*.55; for(const k of[-.24,.24]){ const
 /* ============================================================
    TRAY (drag parts onto the board)
    ============================================================ */
+const GROUPS=[
+  {k:'power',n:'⚡ POWER',t:['battery','solar']},
+  {k:'link', n:'🔗 CONNECT',t:['wire','switch']},
+  {k:'use',  n:'💡 THINGS THAT USE POWER',t:['bulb','led','fan','motor','buzzer','robot']}];
+let SELT=null;   // part picked in the tray (tap-to-place)
+function selectTile(t){
+  SELT=(SELT===t)?null:t; eraser=false; $('eraseBtn').classList.remove('on');
+  partsEl.querySelectorAll('.tile').forEach(x=>x.classList.toggle('sel',x.dataset.t===SELT));
+  if(SELT){ sfx.snap(); showTip(SELT==='wire'?'👆 Tap between two dots to add a wire (or draw with your finger)':'👆 Now tap a spot on the board for the '+NAMES[SELT].toLowerCase()+'!'); }
+  else sfx.pop();
+}
 const partsEl=$('parts'), ghost=$('ghost'), gctx=ghost.getContext('2d');
 function buildTray(){
   const M=MODE==='mission'?MISSIONS[MI]:null;
-  const list=TYPES.filter(t=>!(M&&M.noBattery&&t==='battery'));
-  partsEl.innerHTML=list.map(t=>'<div class="tile" data-t="'+t+'"><canvas width="160" height="110"></canvas><span>'+NAMES[t]+'</span></div>').join('');
+  const ok=t=>!(M&&M.noBattery&&t==='battery');
+  partsEl.innerHTML=GROUPS.map(g=>'<div class="grp '+g.k+'"><div class="gh">'+g.n+'</div><div class="gt">'+
+    g.t.filter(ok).map(t=>'<div class="tile'+(SELT===t?' sel':'')+'" data-t="'+t+'"><canvas width="160" height="110"></canvas><span>'+NAMES[t]+'</span></div>').join('')+'</div></div>').join('');
   partsEl.querySelectorAll('.tile').forEach(tl=>{ drawIcon(tl.querySelector('canvas'),tl.dataset.t,false); hookTile(tl); });
 }
 let DRAG=null;
@@ -563,7 +585,7 @@ function dragMove(x,y){
 function dragEnd(x,y){
   const D=DRAG; DRAG=null; ghost.style.display='none';
   if(D.kind==='new'){
-    if(!D.moved){ D.tile.classList.remove('wig'); void D.tile.offsetWidth; D.tile.classList.add('wig'); showTip('👉 Drag the '+NAMES[D.t].toLowerCase()+' onto the board!'); return; }
+    if(!D.moved){ selectTile(D.t); return; }
     if(D.target){ placePart(D.t,D.target.key,1,false); }
   }
 }
@@ -581,6 +603,7 @@ cv.addEventListener('pointerdown',e=>{
   cv.setPointerCapture(e.pointerId);
   const pt=toCanvas(e.clientX,e.clientY);
   if(eraser){ BD={kind:'erase'}; eraseAt(pt); return; }
+  if(SELT){ BD={kind:'place',sx:e.clientX,sy:e.clientY,n:nearestNode(pt,.3),pt}; return; }
   const E=nearestEdge(pt,.36), pp=E&&partAt(E.key);
   const n=nearestNode(pt,.3);
   if(n>=0&&!(pp&&pp.t!=='wire'&&distToMid(pt,E)<VW.cell*.25)){ BD={kind:'wire',last:n}; return; }
@@ -591,6 +614,7 @@ function distToMid(pt,E){ const [A,B]=epts(E.key); return Math.hypot(pt.x-(A.x+B
 cv.addEventListener('pointermove',e=>{
   if(!BD) return; const pt=toCanvas(e.clientX,e.clientY);
   if(BD.kind==='erase'){ eraseAt(pt); return; }
+  if(BD.kind==='place'){ if(Math.hypot(e.clientX-BD.sx,e.clientY-BD.sy)>14){ if(BD.n>=0) BD={kind:'wire',last:BD.n}; else BD=null; } return; }
   if(BD.kind==='wire'){
     const n=nearestNode(pt,.4); if(n<0||n===BD.last) return;
     const ax=BD.last%NX, ay=(BD.last/NX)|0, bx=n%NX, by=(n/NX)|0;
@@ -608,6 +632,7 @@ cv.addEventListener('pointermove',e=>{
 });
 function endBoard(){
   if(!BD) return; const B=BD; BD=null;
+  if(B.kind==='place'){ placeSelected(B.pt); return; }
   if(B.kind==='part'){
     if(!B.moved){ tapPart(B.part); return; }
     const D=DRAG; DRAG=null; ghost.style.display='none';
@@ -617,6 +642,13 @@ function endBoard(){
 }
 cv.addEventListener('pointerup',endBoard);
 cv.addEventListener('pointercancel',()=>{ if(BD&&BD.kind==='part'&&BD.moved){ parts.push(BD.part); solve(); } BD=null; DRAG=null; ghost.style.display='none'; });
+function placeSelected(pt){
+  if(!inBoard(pt)){ selectTile(SELT); return; }        // tap outside the board = put it back
+  const E=nearestEdge(pt,.6); if(!E){ sfx.nope(); return; }
+  const old=partAt(E.key);
+  if(old&&old.t===SELT){ tapPart(old); return; }        // same part already there: just use it
+  placePart(SELT,E.key,1,false);
+}
 function tapPart(p){
   p.pop=1;
   if(p.t==='switch'){ p.sw=!p.sw; (p.sw?sfx.swOn:sfx.swOff)(); solve(); }
@@ -658,6 +690,12 @@ function draw(dt){
   for(const p of others){ const [A,B]=epts(p.e); drawGlow(c,p,A,B,s,T,night); }
   c.globalCompositeOperation='source-over';
   if(night) for(const p of others) if(p.on&&(p.t==='bulb'||p.t==='led'||p.t==='robot')){ const [A,B]=epts(p.e); drawBody(c,p,A,B,s,T); }
+  if(SELT&&!(DRAG&&DRAG.moved)){
+    const pulse=.55+.45*Math.sin(T*5);
+    for(const E of EDGES){ if(partAt(E.key)) continue; const [A,B]=epts(E.key), mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+      c.fillStyle='rgba(105,240,174,'+(.18+.22*pulse)+')'; circ(c,mx,my,s*.17); c.fill();
+      c.strokeStyle='rgba(105,240,174,'+(.5+.4*pulse)+')'; c.lineWidth=s*.025; c.beginPath(); c.moveTo(mx-s*.07,my); c.lineTo(mx+s*.07,my); c.moveTo(mx,my-s*.07); c.lineTo(mx,my+s*.07); c.stroke(); }
+  }
   if(hintT>0&&MODE==='mission'){ hintT-=dt; c.globalAlpha=.35+.25*Math.sin(T*6);
     for(const q of MISSIONS[MI].sol){ const ex=partAt(q.e); if(ex&&ex.t===q.t&&(q.t!=='battery'||ex.dir===q.dir)) continue; const [A,B]=epts(q.e); drawFull(c,mkPart(q.t,q.e,q.dir,q.sw),A,B,s,T); }
     c.globalAlpha=1; }
@@ -697,7 +735,7 @@ function syncGoal(){
     if(ch.dataset.ok!==String(ok)){ ch.dataset.ok=ok; ch.classList.toggle('ok',ok); drawIcon(ch.querySelector('canvas'),T.icon||(T.t==='solarbulb'?'solar':(T.n===2?'bulb2':T.t)),ok); } });
 }
 function setMode(m){
-  MODE=m; eraser=false; $('eraseBtn').classList.remove('on'); $('goal').dataset.mi=''; completed=false; met=[]; doneT=-1; lastOnCount=0; tipSig='';
+  MODE=m; SELT=null; eraser=false; $('eraseBtn').classList.remove('on'); $('goal').dataset.mi=''; completed=false; met=[]; doneT=-1; lastOnCount=0; tipSig='';
   $('hintBtn').style.display=m==='mission'?'':'none';
   syncSun(); buildTray(); syncGoal();
 }
@@ -729,7 +767,7 @@ onTap($('menuBtn'),showMenu);
 onTap($('sunBtn'),()=>{ sun=!sun; syncSun(); (sun?sfx.on:sfx.flip)(); showTip(sun?'☀️ Good morning! The sun is shining.':'🌙 Night time! Lights look extra bright in the dark.'); solve(); });
 onTap($('muteBtn'),()=>{ muted=!muted; $('muteBtn').textContent=muted?'🔇':'🔊'; });
 onTap($('hintBtn'),()=>{ hintT=4; sfx.snap(); showTip('💡 Put parts where the see-through ones are!'); });
-onTap($('eraseBtn'),()=>{ eraser=!eraser; $('eraseBtn').classList.toggle('on',eraser); if(eraser) showTip('🧽 Tap or rub parts and wires to erase them. Tap ERASE again to stop.'); });
+onTap($('eraseBtn'),()=>{ if(SELT) selectTile(SELT); eraser=!eraser; $('eraseBtn').classList.toggle('on',eraser); if(eraser) showTip('🧽 Tap or rub parts and wires to erase them. Tap ERASE again to stop.'); });
 let clearArm=0;
 onTap($('clearBtn'),()=>{
   const b=$('clearBtn');
@@ -742,7 +780,7 @@ let last=performance.now();
 function frame(now){ const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=now; draw(dt); requestAnimationFrame(frame); }
 parts=[]; buildTray(); syncSun(); $('hintBtn').style.display='none'; showMenu();
 requestAnimationFrame(frame);
-window.__SL={nodeClient:(x,y)=>{ const q=npos(nid(x,y)), r=cv.getBoundingClientRect(); return [r.left+q.x*r.width/cv.width, r.top+q.y*r.height/cv.height]; },
+window.__SL={get SELT(){return SELT},nodeClient:(x,y)=>{ const q=npos(nid(x,y)), r=cv.getBoundingClientRect(); return [r.left+q.x*r.width/cv.width, r.top+q.y*r.height/cv.height]; },
   MISSIONS,get parts(){return parts},set parts(v){parts=v;},solve,startMission,startLab,placePart,get met(){return met},mk:mkPart,
   setSun:v=>{ sun=v; syncSun(); },
   // test hook: solve a list of parts and return what the player would see
