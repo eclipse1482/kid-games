@@ -15,7 +15,6 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
   padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
 #hud{display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(#26406a,#182a46);border:1px solid var(--line);border-radius:12px}
 .hb{width:40px;height:40px;border-radius:11px;background:#0d1626;border:1px solid var(--line);font-size:19px;flex:none;display:grid;place-items:center}
-.hb.on{background:var(--accent)}
 .brand{font-weight:900;letter-spacing:1px;font-size:15px;color:var(--accent);white-space:nowrap}
 .brand small{color:var(--dim);font-size:9px;letter-spacing:.5px}
 #title{flex:1;min-width:0;text-align:center;font-weight:900;font-size:15px;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -86,7 +85,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <main id="app">
   <header id="hud">
     <button class="hb" id="homeBtn" type="button" aria-label="Menu">🏠</button>
-    <div class="brand">⚡ SPARK LAB <small>v1</small></div>
+    <div class="brand">⚡ SPARK LAB <small>v2</small></div>
     <div id="title">PLAY LAB</div>
     <button class="hb" id="hintBtn" type="button" aria-label="Hint">💡</button>
     <button class="hb" id="sunBtn" type="button" aria-label="Day or night">☀️</button>
@@ -109,7 +108,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
     <button class="big blue" id="labBtn" type="button">🧪 PLAY LAB — build anything!</button>
     <div class="sec">⭐ MISSIONS</div>
     <div id="missions"></div>
-    <div class="ver">Version 1 · draw wires with your finger · drag parts onto the board</div>
+    <div class="ver">Version 2 · draw wires with your finger · drag parts onto the board</div>
   </div>
 </div>
 
@@ -244,9 +243,11 @@ function loadLab(){ try{ const S=JSON.parse(localStorage.getItem('spark-lab-boar
 const partAt=key=>parts.find(p=>p.e===key);
 
 /* ============================================================
-   CIRCUIT SOLVER (real nodal analysis, so series / parallel /
-   extra batteries / backwards LEDs all behave correctly)
+   CIRCUIT SOLVER — real nodal analysis
+   Battery = 1V with 0.1Ω inside · Solar = 1V with 0.2Ω (sun only)
+   Every light/motor/fan/buzzer/robot/LED = 1Ω · Wire & ON switch = 0.001Ω
    ============================================================ */
+const WIRE_G=1000;
 function gauss(A,N){
   for(let i=0;i<N;i++){
     let mx=i; for(let r=i+1;r<N;r++) if(Math.abs(A[r][i])>Math.abs(A[mx][i])) mx=r;
@@ -263,29 +264,43 @@ function solveCore(ps,flip){
   for(const p of ps){ const E=EBY[p.e], a=E.a, b=E.b;
     const sw=flip&&flip.has(p)?!p.sw:p.sw;
     switch(p.t){
-      case 'wire': el.push({p,a,b,g:50}); break;
-      case 'switch': if(sw) el.push({p,a,b,g:50}); break;
+      case 'wire': el.push({p,a,b,g:WIRE_G}); break;
+      case 'switch': if(sw) el.push({p,a,b,g:WIRE_G}); break;
       case 'battery': el.push({p,a,b,g:10,V:1,src:1}); break;
       case 'solar': if(sun) el.push({p,a,b,g:5,V:1,src:1}); break;
       case 'led': el.push({p,a,b,g:1,led:1,lon:true}); break;
       default: el.push({p,a,b,g:1});
     }
   }
+  // LEDs are one-way valves. Find the on/off pattern that is self-consistent:
+  //  - an ON LED must carry forward current (more than 0.05V across it)
+  //  - an OFF LED must not have more than 0.05V pushing forward across it
+  // Off LEDs are removed completely, so a dead-end LED can't pick up a fake voltage.
+  const leds=el.filter(e=>e.led), seen=new Set();
+  const ends=e=>{ const an=e.p.dir===1?e.a:e.b; return [an,an===e.a?e.b:e.a]; };
+  const sig=()=>leds.map(e=>e.lon?1:0).join('');
   let V=new Float64Array(N);
-  for(let it=0;it<6;it++){
+  for(let it=0;it<60;it++){
     const A=[]; for(let i=0;i<N;i++){ const r=new Float64Array(N+1); r[i]=1e-6; A.push(r); }
-    for(const e of el){ const g=e.led&&!e.lon?1e-6:e.g;
-      A[e.a][e.a]+=g; A[e.b][e.b]+=g; A[e.a][e.b]-=g; A[e.b][e.a]-=g;
+    const par=new Int32Array(N); for(let i=0;i<N;i++) par[i]=i;
+    const fr=x=>{ while(par[x]!==x) x=par[x]=par[par[x]]; return x; };
+    for(const e of el){ if(e.led&&!e.lon) continue; const g=e.g;
+      A[e.a][e.a]+=g; A[e.b][e.b]+=g; A[e.a][e.b]-=g; A[e.b][e.a]-=g; par[fr(e.a)]=fr(e.b);
       if(e.src){ const pl=e.p.dir===1?e.a:e.b, mn=pl===e.a?e.b:e.a; A[pl][N]+=e.V*g; A[mn][N]-=e.V*g; } }
     V=gauss(A,N);
-    let ch=false;
-    for(const e of el) if(e.led){ const an=e.p.dir===1?e.a:e.b, ca=an===e.a?e.b:e.a; const f=V[an]-V[ca]>.05; if(f!==e.lon){ e.lon=f; ch=true; } }
-    if(!ch) break;
+    seen.add(sig());
+    let worst=null, wv=.05;                       // 1) switch off the worst backwards / idle ON LED
+    for(const e of leds) if(e.lon){ const [an,ca]=ends(e), d=V[an]-V[ca]; if(d<=wv){ wv=d; worst=e; } }
+    if(worst){ worst.lon=false; if(seen.has(sig())) worst.lon=true; else continue; }
+    let best=null, bv=.05;                        // 2) switch on the OFF LED pushed forward the hardest
+    for(const e of leds) if(!e.lon){ const [an,ca]=ends(e); if(fr(an)!==fr(ca)) continue; const d=V[an]-V[ca]; if(d>bv){ bv=d; best=e; } }
+    if(best){ best.lon=true; if(!seen.has(sig())) continue; best.lon=false; }
+    break;
   }
   const res=new Map();
   for(const e of el){
     if(e.src){ const pl=e.p.dir===1?e.a:e.b, mn=pl===e.a?e.b:e.a, Iint=e.g*(e.V-(V[pl]-V[mn])); res.set(e.p,{I:pl===e.b?Iint:-Iint,Iint}); }
-    else { const g=e.led&&!e.lon?1e-6:e.g; res.set(e.p,{I:(V[e.a]-V[e.b])*g}); }
+    else { const g=e.led&&!e.lon?0:e.g; res.set(e.p,{I:(V[e.a]-V[e.b])*g}); }
   }
   return {V,res};
 }
@@ -302,7 +317,7 @@ function findShorts(){
   return parts.filter(p=>(p.t==='battery'||(p.t==='solar'&&sun))&&f(EBY[p.e].a)===f(EBY[p.e].b));
 }
 
-let lastOnCount=0, lastTip='', tipSig='';
+let lastOnCount=0, tipSig='';
 function solve(){
   const {V,res}=solveCore(parts); SOL.V=V;
   const shorts=new Set(findShorts());
@@ -318,7 +333,6 @@ function solve(){
   }
   if(onCount>lastOnCount) sfx.on();
   lastOnCount=onCount;
-  // friendly tips
   let tip='', warn=false;
   if(shorts.size){ tip='⚠️ Short circuit! The electricity is skipping around with no light. Take out a wire!'; warn=true; }
   else if(parts.some(p=>p.t==='battery'&&p.rev)){ tip='🔋 Batteries must point the same way. Tap a battery to flip it!'; }
@@ -377,7 +391,7 @@ function drawWire(c,P,Q,s,p){
 }
 function drawLead(c,P,Q,s){ c.lineCap='round'; lineSeg(c,P,Q,s*.075,'#263238'); lineSeg(c,P,Q,s*.045,'#b0bec5'); }
 function upTxt(c,t,x,y,size,col,stroke){ c.font='900 '+Math.round(size)+'px Segoe UI, Arial'; c.textAlign='center'; c.textBaseline='middle'; if(stroke){ c.lineWidth=size*.25; c.strokeStyle=stroke; c.lineJoin='round'; c.strokeText(t,x,y); } c.fillStyle=col; c.fillText(t,x,y); }
-function plusMark(c,P,Q,s,p){ // little "+" near the positive / anode end
+function plusMark(c,P,Q,s,p){
   const A=p.dir===1?P:Q, B=p.dir===1?Q:P, L=Math.hypot(B.x-A.x,B.y-A.y)||1, ux=(B.x-A.x)/L, uy=(B.y-A.y)/L;
   const x=A.x+ux*s*.2-uy*s*.17, y=A.y+uy*s*.2+ux*s*.17; c.fillStyle='#0009'; circ(c,x,y,s*.075); c.fill(); upTxt(c,'+',x,y+s*.005,s*.13,'#ffd54f');
 }
@@ -550,7 +564,7 @@ function dragEnd(x,y){
   const D=DRAG; DRAG=null; ghost.style.display='none';
   if(D.kind==='new'){
     if(!D.moved){ D.tile.classList.remove('wig'); void D.tile.offsetWidth; D.tile.classList.add('wig'); showTip('👉 Drag the '+NAMES[D.t].toLowerCase()+' onto the board!'); return; }
-    if(D.target){ placePart(D.t,D.target.key,1,D.t==='switch'?false:false); }
+    if(D.target){ placePart(D.t,D.target.key,1,false); }
   }
 }
 function placePart(t,key,dir,sw,keepId){
@@ -592,7 +606,7 @@ cv.addEventListener('pointermove',e=>{
     if(BD.moved) dragMove(e.clientX,e.clientY);
   }
 });
-function endBoard(e){
+function endBoard(){
   if(!BD) return; const B=BD; BD=null;
   if(B.kind==='part'){
     if(!B.moved){ tapPart(B.part); return; }
@@ -625,9 +639,8 @@ function draw(dt){
   c.strokeStyle=night?'#ffffff10':'#ffffff1c'; c.lineWidth=s*.03; c.setLineDash([s*.05,s*.09]);
   for(const E of EDGES){ const [A,B]=epts(E.key); c.beginPath(); c.moveTo(A.x,A.y); c.lineTo(B.x,B.y); c.stroke(); }
   c.setLineDash([]);
-  // sun / moon badge
   if(sun){ c.fillStyle='#ffd54f'; circ(c,b.x+b.w-s*.28,b.y+s*.28,s*.13); c.fill(); }
-  else { c.fillStyle='#e3f2fd'; circ(c,b.x+b.w-s*.28,b.y+s*.28,s*.13); c.fill(); c.fillStyle=night?'#0f1828':'#21385a'; circ(c,b.x+b.w-s*.22,b.y+s*.24,s*.11); c.fill(); }
+  else { c.fillStyle='#e3f2fd'; circ(c,b.x+b.w-s*.28,b.y+s*.28,s*.13); c.fill(); c.fillStyle='#0f1828'; circ(c,b.x+b.w-s*.22,b.y+s*.24,s*.11); c.fill(); }
   for(const p of parts){ if(p.pop>0) p.pop=Math.max(0,p.pop-dt*3);
     if(p.t==='motor'||p.t==='fan') p.ang+=(p.on?clamp(p.lvl,0,2)*14:0)*dt;
     if(Math.abs(p.I)>.04&&!(p.t==='switch'&&!p.sw)) p.ph+=Math.sign(p.I)*clamp(Math.abs(p.I)*1.1,.35,4)*dt; }
@@ -645,19 +658,15 @@ function draw(dt){
   for(const p of others){ const [A,B]=epts(p.e); drawGlow(c,p,A,B,s,T,night); }
   c.globalCompositeOperation='source-over';
   if(night) for(const p of others) if(p.on&&(p.t==='bulb'||p.t==='led'||p.t==='robot')){ const [A,B]=epts(p.e); drawBody(c,p,A,B,s,T); }
-  // hint ghosts
   if(hintT>0&&MODE==='mission'){ hintT-=dt; c.globalAlpha=.35+.25*Math.sin(T*6);
     for(const q of MISSIONS[MI].sol){ const ex=partAt(q.e); if(ex&&ex.t===q.t&&(q.t!=='battery'||ex.dir===q.dir)) continue; const [A,B]=epts(q.e); drawFull(c,mkPart(q.t,q.e,q.dir,q.sw),A,B,s,T); }
     c.globalAlpha=1; }
-  // drag preview
   if(DRAG&&DRAG.moved){
     if(DRAG.target){ const [A,B]=epts(DRAG.target.key); c.globalAlpha=.7; const gp=DRAG.part||mkPart(DRAG.t,DRAG.target.key); drawFull(c,gp,A,B,s,T); c.globalAlpha=1;
       c.strokeStyle='#69f0ae'; c.lineWidth=s*.04; c.setLineDash([s*.08,s*.06]); const mx=(A.x+B.x)/2,my=(A.y+B.y)/2; circ(c,mx,my,s*.42); c.stroke(); c.setLineDash([]); }
     if(DRAG.kind==='move'){ const tx=w-s*.6, ty=h-s*.6; c.globalAlpha=DRAG.out?1:.55; upTxt(c,'🗑️',tx,ty,s*.7,'#fff'); c.globalAlpha=1; }
   }
-  // sounds while running
-  const bz=parts.some(p=>p.t==='buzzer'&&p.on);
-  if(bz){ buzzT-=dt; if(buzzT<=0){ buzzT=.42; buzzK^=1; sfx.buzz(buzzK); } }
+  if(parts.some(p=>p.t==='buzzer'&&p.on)){ buzzT-=dt; if(buzzT<=0){ buzzT=.42; buzzK^=1; sfx.buzz(buzzK); } }
   if(parts.some(p=>p.t==='robot'&&p.on)){ robotT-=dt; if(robotT<=0){ robotT=rnd(2.5,4); sfx.boop(); } }
   if(doneT>0){ doneT-=dt; if(doneT<=0) showDone(); }
 }
@@ -733,7 +742,14 @@ let last=performance.now();
 function frame(now){ const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=now; draw(dt); requestAnimationFrame(frame); }
 parts=[]; buildTray(); syncSun(); $('hintBtn').style.display='none'; showMenu();
 requestAnimationFrame(frame);
-window.__SL={nodeClient:(x,y)=>{ const q=npos(nid(x,y)), r=cv.getBoundingClientRect(); return [r.left+q.x*r.width/cv.width, r.top+q.y*r.height/cv.height]; },MISSIONS,get parts(){return parts},solve,startMission,startLab,placePart,get met(){return met},mk:mkPart,set parts(v){parts=v;}};
+window.__SL={nodeClient:(x,y)=>{ const q=npos(nid(x,y)), r=cv.getBoundingClientRect(); return [r.left+q.x*r.width/cv.width, r.top+q.y*r.height/cv.height]; },
+  MISSIONS,get parts(){return parts},set parts(v){parts=v;},solve,startMission,startLab,placePart,get met(){return met},mk:mkPart,
+  setSun:v=>{ sun=v; syncSun(); },
+  // test hook: solve a list of parts and return what the player would see
+  probe(list,isSun){ const keep=parts, ks=sun; sun=isSun!==false; parts=list.map(q=>mkPart(q.t,q.e,q.dir,q.sw));
+    const {res}=solveCore(parts); const sh=findShorts().length>0;
+    const out=parts.map(p=>{ const r=res.get(p), o={t:p.t,I:r?r.I:0}; if(LOADS.has(p.t)){ const L=loadOn(p,r); o.on=sh?false:L.on; o.lvl=sh?0:L.lvl; } return o; });
+    parts=keep; sun=ks; return {out,short:sh}; }};
 })();
 </script>
 </body>
