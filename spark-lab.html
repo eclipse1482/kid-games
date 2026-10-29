@@ -99,7 +99,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <main id="app">
   <header id="hud">
     <button class="hb" id="homeBtn" type="button" aria-label="Menu">🏠</button>
-    <div class="brand">⚡ SPARK LAB <small>v5</small></div>
+    <div class="brand">⚡ SPARK LAB <small>v6</small></div>
     <div id="title">PLAY LAB</div>
     <button class="hb" id="hintBtn" type="button" aria-label="Hint">💡</button>
     <button class="hb" id="sunBtn" type="button" aria-label="Day or night">☀️</button>
@@ -123,7 +123,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
     <button class="big blue" id="labBtn" type="button">🧪 PLAY LAB — build anything!</button>
     <div class="sec">⭐ MISSIONS</div>
     <div id="missions"></div>
-    <div class="ver">Version 5 · tap a part, then tap the board · drag parts back to the tray to remove them</div>
+    <div class="ver">Version 6 · tap a part, then tap the board · drag parts back to the tray to remove them</div>
   </div>
 </div>
 
@@ -248,11 +248,10 @@ const partAt=key=>parts.find(p=>p.e===key);
 
 /* ============================================================
    CIRCUIT SOLVER — real nodal analysis
-   Battery = 1V with 0.1Ω inside · Solar = 1V with 0.2Ω (sun only)
+   Battery = 1V with 0.1Ω inside · Solar in sun = 1V with 0.2Ω
+   Solar at night = makes no power, but its built-in BYPASS DIODE
+     lets other power pass through it in its normal direction (like real panels)
    Every light/motor/fan/buzzer/robot/LED = 1Ω · Wire & ON switch = 0.001Ω
-   A shorted power source is handled by the physics itself: its two ends
-   end up at (almost) the same voltage, so it can't push anything else —
-   but OTHER power sources elsewhere in the circuit still work normally.
    ============================================================ */
 const WIRE_G=1000;
 function gauss(A,N){
@@ -274,13 +273,17 @@ function solveCore(ps,flip){
       case 'wire': el.push({p,a,b,g:WIRE_G}); break;
       case 'switch': if(sw) el.push({p,a,b,g:WIRE_G}); break;
       case 'battery': el.push({p,a,b,g:10,V:1,src:1}); break;
-      case 'solar': if(sun) el.push({p,a,b,g:5,V:1,src:1}); break;
-      case 'led': el.push({p,a,b,g:1,led:1,lon:true}); break;
+      case 'solar':
+        if(sun) el.push({p,a,b,g:5,V:1,src:1});
+        else { const pl=p.dir===1?a:b, mn=pl===a?b:a;          // bypass diode: current may enter at − and leave at +
+               el.push({p,a,b,g:50,led:1,lon:true,an:mn,ca:pl,bypass:1}); }
+        break;
+      case 'led': el.push({p,a,b,g:1,led:1,lon:true,an:p.dir===1?a:b,ca:p.dir===1?b:a}); break;
       default: el.push({p,a,b,g:1});
     }
   }
+  // One-way parts (LEDs, night-time solar bypass): find the self-consistent on/off pattern.
   const leds=el.filter(e=>e.led), seen=new Set();
-  const ends=e=>{ const an=e.p.dir===1?e.a:e.b; return [an,an===e.a?e.b:e.a]; };
   const sig=()=>leds.map(e=>e.lon?1:0).join('');
   let V=new Float64Array(N);
   for(let it=0;it<60;it++){
@@ -292,11 +295,11 @@ function solveCore(ps,flip){
       if(e.src){ const pl=e.p.dir===1?e.a:e.b, mn=pl===e.a?e.b:e.a; A[pl][N]+=e.V*g; A[mn][N]-=e.V*g; } }
     V=gauss(A,N);
     seen.add(sig());
-    let worst=null, wv=.05;
-    for(const e of leds) if(e.lon){ const [an,ca]=ends(e), d=V[an]-V[ca]; if(d<=wv){ wv=d; worst=e; } }
+    let worst=null, wv=e=>e.bypass?1e-4:.05, wd=1e9;
+    for(const e of leds) if(e.lon){ const d=V[e.an]-V[e.ca]; if(d<=wv(e)&&d<wd){ wd=d; worst=e; } }
     if(worst){ worst.lon=false; if(seen.has(sig())) worst.lon=true; else continue; }
-    let best=null, bv=.05;
-    for(const e of leds) if(!e.lon){ const [an,ca]=ends(e); if(fr(an)!==fr(ca)) continue; const d=V[an]-V[ca]; if(d>bv){ bv=d; best=e; } }
+    let best=null, bd=0;
+    for(const e of leds) if(!e.lon){ if(fr(e.an)!==fr(e.ca)) continue; const d=V[e.an]-V[e.ca]; if(d>wv(e)&&d>bd){ bd=d; best=e; } }
     if(best){ best.lon=true; if(!seen.has(sig())) continue; best.lon=false; }
     break;
   }
@@ -325,20 +328,23 @@ function solve(){
   const {V,res}=solveCore(parts); SOL.V=V;
   const shorts=new Set(findShorts());
   let onCount=0;
-  for(const p of parts){ const r=res.get(p); p.I=r?r.I:0; p.short=shorts.has(p);
+  for(const p of parts){ const r=res.get(p); p.I=r?r.I:0; p.short=false; p.pass=false;
     if(LOADS.has(p.t)){ const o=loadOn(p,r); if(o.on&&!p.on) p.pop=1; p.on=o.on; p.lvl=o.lvl; if(p.on) onCount++; }
-    else if(p.t==='battery'||p.t==='solar'){ p.on=!!r&&r.Iint>.15; p.rev=!!r&&r.Iint<-.1; p.lvl=r?Math.abs(r.Iint):0; }
+    else if(p.t==='battery'||(p.t==='solar'&&sun)){ p.on=!!r&&r.Iint>.15; p.rev=!!r&&r.Iint<-.1; p.lvl=r?Math.abs(r.Iint):0;
+      if(r&&r.Iint>(p.t==='battery'?8:4)) shorts.add(p); }                // power source pushed through (almost) nothing
+    else if(p.t==='solar'){ p.on=false; p.rev=false; p.lvl=0; p.pass=Math.abs(p.I)>.05; }
     else { p.on=Math.abs(p.I)>.05; }
   }
-  // Only the wires actually carrying a shorted source's huge current race red. Everything else follows the physics.
+  for(const p of shorts) p.short=true;
   if(shorts.size) for(const p of parts) if(p.t==='wire'||p.t==='switch') p.short=Math.abs(p.I)>3;
   if(onCount>lastOnCount) sfx.on();
   lastOnCount=onCount;
   let tip='', warn=false;
-  if(shorts.size){ const s=[...shorts][0]; tip='⚠️ Short circuit! A wire goes straight across the '+(s.t==='solar'?'solar panel':'battery')+', so its power skips everything. Take out that wire!'; warn=true; }
+  if(shorts.size){ const s=[...shorts][0]; tip='⚠️ Short circuit! The '+(s.t==='solar'?'solar panel':'battery')+'\'s power is skipping around with nothing to power. Take out a wire!'; warn=true; }
   else if(parts.some(p=>p.t==='battery'&&p.rev)){ tip='🔋 Batteries must point the same way. Tap a battery to flip it!'; }
   else if(parts.some(p=>p.t==='led'&&!p.on&&V&&reverseLED(p,V))){ tip='🔴 LEDs only work one way. Tap the LED to flip it!'; }
   else if(!sun&&parts.some(p=>p.t==='solar')&&!parts.some(p=>p.t==='battery')){ tip='🌙 Solar panels need sunshine! Tap the ☀️ button.'; }
+  else if(!sun&&parts.some(p=>p.t==='solar'&&p.pass)){ tip='🌙 The solar panel is sleeping, but the battery\'s power can still go through it!'; }
   else { const sw=parts.filter(p=>p.t==='switch'&&!p.sw);
     for(const s of sw){ const {res:r2}=solveCore(parts,new Set([s])); if(parts.some(p=>LOADS.has(p.t)&&!p.on&&loadOn(p,r2.get(p)).on)){ tip='👆 The switch is OFF. Tap the switch to turn it ON!'; break; } } }
   if(!tip&&MODE==='mission'&&MI===5&&parts.some(p=>p.t==='bulb'&&p.on)&&!parts.some(p=>p.t==='bulb'&&p.lvl>=1.3)) tip='✨ It works! Can you make it SUPER bright? Try another battery!';
@@ -485,6 +491,7 @@ function drawBody(c,p,P,Q,s,t){
       c.moveTo(x-w,gy); c.lineTo(x+w,gy); c.stroke();
       if(sun&&p.on){ const k=(t*.6)%1; c.save(); c.beginPath(); c.moveTo(x-w+sk,gy-h); c.lineTo(x+w+sk,gy-h); c.lineTo(x+w-sk,gy+h); c.lineTo(x-w-sk,gy+h); c.closePath(); c.clip();
         const gx=x-w*1.4+k*w*2.8, gr=c.createLinearGradient(gx-s*.08,0,gx+s*.08,0); gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(.5,'rgba(255,255,255,.6)'); gr.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=gr; c.fillRect(gx-s*.1,gy-h,s*.2,h*2); c.restore(); }
+      if(!sun){ const zb=(t*.8)%1; c.globalAlpha=1-zb; upTxt(c,'z',x+w*.9,gy-h-s*.05-zb*s*.12,s*(.1+zb*.06),'#cfe3ff','#0008'); c.globalAlpha=1; }
       plusMark(c,P,Q,s,p);
       if(p.short) upTxt(c,'HOT!',x,y+s*.3,s*.15,'#ff5252','#000');
       break; }
@@ -520,9 +527,11 @@ function iconPart(t,lit){ const p=mkPart(t,'h0,0',1,t==='switch'); if(lit){ p.on
 function drawIcon(canvas,t,lit){
   const c=canvas.getContext('2d'), w=canvas.width, h=canvas.height; c.clearRect(0,0,w,h);
   const s=Math.min(w*.9,h*1.25), y=h*.68, Pp={x:w/2-s*.5,y}, Qp={x:w/2+s*.5,y};
-  if(t==='bulb2'){ drawIconTwo(c,w,h,lit); return; }
-  if(t==='super'){ const p=iconPart('bulb',true); p.lvl=lit?1.7:1; if(!lit) p.on=false; drawLead(c,Pp,Qp,s); drawBody(c,p,Pp,Qp,s,1); drawGlow(c,p,Pp,Qp,s*.6,1,false); upTxt(c,'×2',w*.82,h*.2,s*.2,'#ffd54f','#000'); return; }
-  const p=iconPart(t,lit); drawFull(c,p,Pp,Qp,s,1.2); drawGlow(c,p,Pp,Qp,s*.6,1.2,false);
+  const ks=sun; sun=true;
+  if(t==='bulb2') drawIconTwo(c,w,h,lit);
+  else if(t==='super'){ const p=iconPart('bulb',true); p.lvl=lit?1.7:1; if(!lit) p.on=false; drawLead(c,Pp,Qp,s); drawBody(c,p,Pp,Qp,s,1); drawGlow(c,p,Pp,Qp,s*.6,1,false); upTxt(c,'×2',w*.82,h*.2,s*.2,'#ffd54f','#000'); }
+  else { const p=iconPart(t,lit); drawFull(c,p,Pp,Qp,s,1.2); drawGlow(c,p,Pp,Qp,s*.6,1.2,false); }
+  sun=ks;
 }
 function drawIconTwo(c,w,h,lit){ const s=w*.55; for(const k of[-.24,.24]){ const p=iconPart('bulb',lit); const y=h*.7; const Pp={x:w/2+k*w-s*.5,y}, Qp={x:w/2+k*w+s*.5,y}; drawBody(c,p,Pp,Qp,s,1); drawGlow(c,p,Pp,Qp,s*.6,1,false); } }
 
@@ -752,7 +761,7 @@ onTap($('homeBtn'),()=>{ saveLab(); showMenu(); });
 onTap($('nextBtn'),()=>startMission(MI+1));
 onTap($('keepBtn'),()=>$('done').classList.add('hidden'));
 onTap($('menuBtn'),showMenu);
-onTap($('sunBtn'),()=>{ sun=!sun; syncSun(); (sun?sfx.on:sfx.flip)(); showTip(sun?'☀️ Good morning! The sun is shining.':'🌙 Night time! Lights look extra bright in the dark.'); solve(); });
+onTap($('sunBtn'),()=>{ sun=!sun; syncSun(); (sun?sfx.on:sfx.flip)(); showTip(sun?'☀️ Good morning! The sun is shining.':'🌙 Night time! Lights look extra bright in the dark.'); tipSig='__'; solve(); });
 onTap($('muteBtn'),()=>{ muted=!muted; $('muteBtn').textContent=muted?'🔇':'🔊'; });
 onTap($('hintBtn'),()=>{ hintT=4; sfx.snap(); showTip('💡 Put parts where the see-through ones are!'); });
 onTap($('eraseBtn'),()=>{ clearSel(); eraser=!eraser; $('eraseBtn').classList.toggle('on',eraser); if(eraser) showTip('🧽 Tap or rub parts and wires to erase them. Tap ERASE again to stop.'); });
@@ -771,7 +780,7 @@ requestAnimationFrame(frame);
 window.__SL={nodeClient:(x,y)=>{ const q=npos(nid(x,y)), r=cv.getBoundingClientRect(); return [r.left+q.x*r.width/cv.width, r.top+q.y*r.height/cv.height]; },
   get SELT(){return SELT},MISSIONS,get parts(){return parts},set parts(v){parts=v;},solve,startMission,startLab,placePart,get met(){return met},mk:mkPart,
   probe(list,isSun){ const keep=parts, ks=sun; sun=isSun!==false; parts=list.map(q=>mkPart(q.t,q.e,q.dir,q.sw)); solve();
-    const out={short:findShorts().length>0,parts:parts.map(p=>({t:p.t,e:p.e,I:+p.I.toFixed(3),on:p.on,short:!!p.short}))}; parts=keep; sun=ks; return out; }};
+    const out={tip:tipSig,parts:parts.map(p=>({t:p.t,e:p.e,I:+p.I.toFixed(3),on:p.on,short:!!p.short}))}; parts=keep; sun=ks; return out; }};
 })();
 </script>
 </body>
