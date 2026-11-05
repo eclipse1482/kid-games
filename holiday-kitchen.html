@@ -6,8 +6,7 @@
 <meta name="theme-color" content="#2a160c">
 <title>Holiday Kitchen</title>
 <style>
-:root{--wall1:#f4dcb8;--wall2:#e7c08e;--cloth:#c0392b;--cloth2:#a93226;--accent:#e67e22;--accent2:#ffd27a;--ink:#3a2210;
-  --face:60px;--panel:#fffaf2;--line:#00000018}
+:root{--wall1:#f4dcb8;--wall2:#e7c08e;--cloth:#c0392b;--cloth2:#a93226;--accent:#e67e22;--accent2:#ffd27a;--ink:#3a2210;--face:60px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 html,body{margin:0;height:100%;background:#2a160c;color:var(--ink);font-family:"Segoe UI",system-ui,Arial,sans-serif}
 body{height:100dvh;overflow:hidden;overscroll-behavior:none}
@@ -23,7 +22,6 @@ button *{pointer-events:none}
 #say{flex:1;min-width:0;text-align:center;font-weight:900;font-size:clamp(13px,2.6vh,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stars{font-weight:900;font-size:clamp(14px,2.6vh,19px);white-space:nowrap;background:#00000040;border-radius:10px;padding:4px 10px}
 #room{min-height:0;display:grid;gap:6px;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
-/* ---------- dining room ---------- */
 #dining{position:relative;min-height:0;border-radius:16px;overflow:hidden;background:linear-gradient(var(--wall1),var(--wall2));border:3px solid #00000030}
 #banner{position:absolute;left:50%;top:6px;transform:translateX(-50%);padding:4px 16px;border-radius:12px;background:var(--accent);color:#fff;font-weight:900;
   font-size:clamp(11px,2.4vh,18px);letter-spacing:1px;white-space:nowrap;box-shadow:0 3px 0 #0003;z-index:2}
@@ -39,7 +37,6 @@ button *{pointer-events:none}
 .wish{position:relative;font-size:calc(var(--face)*.5);transition:opacity .3s}
 .wish.done{opacity:.35}
 .wish.done::after{content:"✔";position:absolute;right:-4px;bottom:-4px;font-size:.55em;color:#fff;background:#2ecc71;border-radius:50%;width:1.2em;height:1.2em;display:grid;place-items:center;font-weight:900}
-.bub.full{background:#ffe3ec}
 .face{font-size:var(--face);position:relative;transition:transform .2s}
 .hat{position:absolute;left:50%;top:-.42em;transform:translateX(-50%);font-size:.55em}
 .nm{font-size:clamp(9px,1.7vh,12px);font-weight:900;color:#fff;background:#0006;border-radius:8px;padding:1px 7px;margin-top:2px;white-space:nowrap}
@@ -58,7 +55,6 @@ button *{pointer-events:none}
 @keyframes talk{0%{opacity:0;transform:translate(-50%,6px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
 .fall{position:absolute;top:-40px;pointer-events:none;animation:fall linear forwards;z-index:1}
 @keyframes fall{to{transform:translate(var(--dx),110vh) rotate(var(--r))}}
-/* ---------- kitchen ---------- */
 #kitchen{min-height:0;min-width:0;border-radius:16px;background:linear-gradient(#fff8ee,#f3e6d2);border:3px solid #00000030;padding:8px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
 #recipe{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:6px 10px;box-shadow:0 3px 0 #0001;min-height:0}
 #recipe .rd{font-size:clamp(28px,7vh,48px)}
@@ -89,22 +85,20 @@ button *{pointer-events:none}
 .big.wait{background:#cbbca8;box-shadow:none}
 @keyframes pulse{50%{transform:scale(1.04)}}
 .hint{text-align:center;font-weight:900;color:#7a5a3a;font-size:clamp(13px,2.6vh,18px);padding:8px}
-/* bowl */
 .bowl{position:relative;height:66%;aspect-ratio:1.6;max-width:80%}
 .bowl .back{position:absolute;inset:0 0 auto 0;height:38%;border-radius:50%;background:#e9d3b4;border:4px solid #c9a87c}
-.bowl .in{position:absolute;left:12%;right:12%;top:8%;height:46%;}
+.bowl .in{position:absolute;left:12%;right:12%;top:8%;height:46%}
 .bowl .in span{position:absolute;font-size:min(8vh,44px);transition:transform .3s}
-.bowl .front{position:absolute;left:0;right:0;top:19%;bottom:0;border-radius:0 0 50% 50%/0 0 100% 100%;background:linear-gradient(var(--accent),color-mix(in srgb,var(--accent) 70%,#000));border:4px solid #0002;border-top:0}
+.bowl .front{position:absolute;left:0;right:0;top:19%;bottom:0;border-radius:0 0 50% 50%/0 0 100% 100%;background:linear-gradient(var(--accent),var(--accent2));border:4px solid #0002;border-top:0}
 .bowl .front::after{content:"";position:absolute;left:10%;top:18%;width:22%;height:18%;border-radius:50%;background:#ffffff40}
 .bowl.spin .in{animation:swirl .5s}
 @keyframes swirl{to{transform:rotate(360deg)}}
-.spoon{position:absolute;right:8%;top:-28%;font-size:min(10vh,52px);transform-origin:50% 90%;transition:transform .2s}
+.spoon{position:absolute;right:8%;top:-28%;font-size:min(10vh,52px);transform-origin:50% 90%}
 .bowl.spin .spoon{animation:stir .5s}
 @keyframes stir{25%{transform:rotate(-30deg) translateX(-30%)}75%{transform:rotate(25deg) translateX(20%)}}
 .mixdots{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:clamp(14px,3vh,22px);letter-spacing:4px;color:var(--accent)}
 .poof{position:absolute;font-size:min(7vh,36px);animation:poof .8s forwards;pointer-events:none}
 @keyframes poof{to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
-/* appliances */
 .app{position:relative;height:88%;aspect-ratio:1.15;max-width:80%;border-radius:16px;background:linear-gradient(#e7ebef,#b9c2cc);border:4px solid #8a96a3;box-shadow:0 6px 0 #0003;display:flex;flex-direction:column;padding:6%}
 .app .lbl{font-weight:900;text-align:center;color:#4a5562;font-size:clamp(11px,2.4vh,16px);letter-spacing:2px}
 .app .win{flex:1;margin-top:6%;border-radius:12px;background:#2a2f36;border:4px solid #6c7887;display:grid;place-items:center;position:relative;overflow:hidden}
@@ -114,7 +108,7 @@ button *{pointer-events:none}
 @keyframes heat{50%{filter:brightness(1.25)}}
 .app.cold.cooking .win{background:radial-gradient(#bfe6ff,#3a8fd0)}
 .app.grill .win{background:#2a2f36 repeating-linear-gradient(0deg,transparent 0 12px,#555 12px 16px)}
-.app.grill.cooking .win{background:radial-gradient(#ff8a3a,#7a1a0a);}
+.app.grill.cooking .win{background:radial-gradient(#ff8a3a,#7a1a0a)}
 .app .bar{height:10px;border-radius:6px;background:#00000030;margin-top:6%;overflow:hidden}
 .app .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd27a,#ff7a1a)}
 .app.cold .bar i{background:linear-gradient(90deg,#bfe6ff,#3a8fd0)}
@@ -124,20 +118,16 @@ button *{pointer-events:none}
 .steam{position:absolute;font-size:min(5vh,28px);opacity:.8;animation:steam 1.4s infinite}
 @keyframes steam{0%{transform:translateY(0);opacity:0}30%{opacity:.8}100%{transform:translateY(-40px);opacity:0}}
 .dingT{position:absolute;top:-8%;font-weight:900;font-size:clamp(20px,5vh,36px);color:#e74c3c;animation:pulse .5s infinite;text-shadow:0 2px 0 #fff}
-/* plate */
 .bigPlate{position:relative;height:78%;aspect-ratio:1.5;max-width:86%;display:grid;place-items:center}
 .bigPlate::before{content:"";position:absolute;inset:18% 0 0 0;border-radius:50%;background:radial-gradient(#fff 52%,#ececec 53%,#fff 68%);box-shadow:0 6px 0 #0002}
 .bigPlate .dish{position:relative;font-size:min(20vh,110px);transform:translateY(-6%);animation:pop .4s}
 @keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1) translateY(-6%)}}
 .bigPlate .top{position:absolute;font-size:min(6vh,32px);animation:pop .3s}
-.sparkle{position:absolute;font-size:min(5vh,26px);animation:poof 1s forwards;pointer-events:none}
-/* orders */
 .orders{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;padding:10px;max-height:100%;overflow:auto}
 .order{border-radius:18px;background:#fff;border:3px solid #e3d5c2;box-shadow:0 5px 0 #d5c4ad;padding:8px 12px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:clamp(96px,22vw,150px)}
 .order .oe{font-size:clamp(36px,9vh,64px)}
 .order .on{font-weight:900;font-size:clamp(11px,2.2vh,15px)}
 .order .ow{font-size:clamp(14px,3vh,22px)}
-/* glow & pointer */
 .want{animation:want 1s infinite!important}
 @keyframes want{0%,100%{box-shadow:0 0 0 3px #ffc53d,0 0 10px 3px #ffc53d66}50%{box-shadow:0 0 0 6px #ffe38a,0 0 26px 10px #ffc53daa}}
 .guest.want{animation:none!important}
@@ -153,7 +143,6 @@ button *{pointer-events:none}
 #toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);padding:7px 16px;border-radius:20px;background:#000000c8;color:#fff;font-weight:900;font-size:15px;
   pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap;z-index:22;max-width:94%;overflow:hidden;text-overflow:ellipsis}
 #toast.on{opacity:1}
-/* overlays */
 .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:8px;background:#1a0d06d9;backdrop-filter:blur(3px)}
 .overlay.hidden{display:none}
 .card{width:min(760px,100%);max-height:calc(100dvh - 16px);overflow:auto;padding:12px 16px;text-align:center;background:linear-gradient(#fff8ee,#f3e6d2);
@@ -161,10 +150,10 @@ button *{pointer-events:none}
 .card h1{margin:0;font-size:clamp(22px,4.6vw,34px);color:#c25a12;letter-spacing:1px}
 .sub{font-weight:700;color:#7a5a3a;font-size:13px}
 .sec{font-weight:900;color:#a58a6a;font-size:11px;letter-spacing:1.2px;text-align:left}
-#themes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+#themes{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .th{border-radius:16px;border:3px solid #0000;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;box-shadow:0 4px 0 #0003}
-.th .te{font-size:clamp(28px,6vh,44px)}
-.th b{font-size:clamp(10px,2vh,14px);white-space:nowrap;text-shadow:0 1px 2px #0006}
+.th .te{font-size:clamp(26px,5.5vh,42px)}
+.th b{font-size:clamp(9px,1.8vh,13px);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px #0006}
 .th.on{border-color:#ffd23f;box-shadow:0 0 0 3px #ffd23f,0 4px 0 #0003}
 #sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .sz{border-radius:13px;border:3px solid #e3d5c2;background:#fff;padding:7px 4px;display:flex;flex-direction:column;align-items:center}
@@ -175,10 +164,10 @@ button *{pointer-events:none}
 .ver{font-size:10px;color:#a58a6a;font-weight:800}
 .bigE{font-size:clamp(60px,15vh,110px);line-height:1;animation:pop .6s}
 @media (orientation:landscape) and (max-height:500px){ .card{padding:8px 12px;gap:5px} .sub{display:none} }
+@media (max-width:760px){ #themes{grid-template-columns:repeat(4,minmax(0,1fr))} .th b{font-size:10px} }
 @media (orientation:portrait){
   .brand{display:none}
   #room{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,.85fr) minmax(0,1.15fr)}
-  #themes{grid-template-columns:repeat(3,minmax(0,1fr))}
   .steps span{width:24px;height:24px;font-size:12px}.steps{gap:2px}
 }
 </style>
@@ -187,7 +176,7 @@ button *{pointer-events:none}
 <main id="app">
   <header id="hud">
     <button class="hb" id="homeBtn" type="button" aria-label="Pick a theme">🏠</button>
-    <div class="brand">HOLIDAY KITCHEN <small>v1</small></div>
+    <div class="brand">HOLIDAY KITCHEN <small>v2</small></div>
     <div id="say">Let's cook!</div>
     <div class="stars">⭐ <span id="sStar">0</span></div>
     <button class="hb" id="muteBtn" type="button" aria-label="Sound">🔊</button>
@@ -199,7 +188,6 @@ button *{pointer-events:none}
 </main>
 <div id="pointer" class="emo">👆</div>
 <div id="toast"></div>
-
 <div class="overlay" id="title">
   <div class="card">
     <h1>👩‍🍳 HOLIDAY KITCHEN 👨‍🍳</h1>
@@ -209,7 +197,7 @@ button *{pointer-events:none}
     <div class="sec">HOW HUNGRY ARE THEY?</div>
     <div id="sizes"></div>
     <button class="go" id="startBtn" type="button">LET'S COOK! 🍳</button>
-    <div class="ver">Version 1</div>
+    <div class="ver">Version 2</div>
   </div>
 </div>
 <div class="overlay hidden" id="done">
@@ -221,7 +209,6 @@ button *{pointer-events:none}
     <button class="go alt" id="newBtn" type="button">PICK A NEW PARTY</button>
   </div>
 </div>
-
 <script>
 'use strict';
 (function(){
@@ -237,10 +224,6 @@ function onTap(el,fn){
   el.addEventListener('pointerup',e=>{ if(!d||d.id!==e.pointerId) return; const m=Math.hypot(e.clientX-d.x,e.clientY-d.y); d=null; if(m<18){ initAudio(); fn(e); } });
   el.addEventListener('pointercancel',()=>d=null);
 }
-
-/* ============================================================
-   SOUND — friendly tones only
-   ============================================================ */
 let AC=null, master=null, muted=false;
 function initAudio(){ if(AC){ AC.resume&&AC.resume(); return; }
   try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.5; master.connect(AC.destination); }catch(e){ AC=null; } }
@@ -263,12 +246,9 @@ const sfx={
   yum:()=>{ tone(330,.08,'square',.05); tone(392,.08,'square',.05,.12); tone(330,.08,'square',.05,.24); tone(523,.25,'triangle',.12,.38); },
   star:()=>[784,988,1319].forEach((f,i)=>tone(f,.18,'triangle',.12,i*.08)),
   giggle:()=>[880,1100,880,1180].forEach((f,i)=>tone(f,.08,'sine',.08,i*.08)),
+  boom:()=>{ for(let i=0;i<5;i++){ const t=i*.18; tone(rnd(600,900),.5,'sine',.06,t,rnd(1600,2200)); tone(rnd(1400,2400),.25,'triangle',.05,t+.3); } },
   fanfare:()=>{ [523,659,784,1047].forEach((f,i)=>tone(f,.3,'triangle',.18,i*.13)); tone(1047,.9,'triangle',.15,.55); tone(1319,.9,'triangle',.1,.55); }
 };
-
-/* ============================================================
-   THEMES, DISHES, GUESTS
-   ============================================================ */
 const I=(e,n)=>({e,n});
 const COOK={
   oven:{n:'OVEN',e:'🔥',put:'PUT IN THE OVEN',time:4},
@@ -312,6 +292,28 @@ const THEMES={
       pretzel:{n:'Big Pretzel',e:'🥨',ing:[I('🌾','flour'),I('🧂','salt'),I('🧈','butter')],mix:'TWIST',cook:'oven'},
       wings:{n:'Wings',e:'🍗',ing:[I('🍗','chicken'),I('🌶️','spice'),I('🧈','butter')],mix:'SHAKE',cook:'oven'},
       nachos:{n:'Nachos',e:'🌮',ing:[I('🌽','chips'),I('🧀','cheese'),I('🍅','salsa')],mix:'SPREAD',cook:'oven'}}},
+  easter:{n:'Easter',e:'🐣',banner:'HAPPY EASTER!',done:'Happy Easter! What a hoppy-yummy brunch!',
+    wall:['#e6f7d9','#c8ecb6'],cloth:['#ffd1e8','#ffb3d6'],accent:'#b07fff',accent2:'#ffd6f0',bg:'#3a2a52',tile:'linear-gradient(#ffc2e2,#9fd8ff)',
+    fall:['🌸','🌼','🥚'],decor:['🐣','🌷','🥚','🐰','🌼'],hat:null,special:{e:'🐰',n:'Easter Bunny',wants:['carrotcake','eggs']},
+    dishes:{
+      eggs:{n:'Colored Eggs',e:'🥚',ing:[I('🥚','egg'),I('💧','water'),I('🎨','color')],mix:'DIP',cook:'stove',top:['🌸','💜','💛']},
+      ham:{n:'Easter Ham',e:'🍖',ing:[I('🍖','ham'),I('🍯','honey'),I('🍍','pineapple')],mix:'RUB',cook:'oven'},
+      carrotcake:{n:'Carrot Cake',e:'🍰',ing:[I('🥕','carrot'),I('🌾','flour'),I('🥚','egg')],mix:'MIX',cook:'oven',top:['🥕','🌼']},
+      buns:{n:'Hot Cross Buns',e:'🥯',ing:[I('🌾','flour'),I('🧈','butter'),I('🍇','raisins')],mix:'KNEAD',cook:'oven',top:['➕']},
+      pancakes:{n:'Bunny Pancakes',e:'🥞',ing:[I('🌾','flour'),I('🥛','milk'),I('🥚','egg')],mix:'WHISK',cook:'stove',top:['🍓','🍌']},
+      salad:{n:'Spring Salad',e:'🥗',ing:[I('🥬','lettuce'),I('🥕','carrot'),I('🥒','cucumber')],mix:'TOSS'},
+      treats:{n:'Chocolate Bunnies',e:'🍫',ing:[I('🍫','chocolate'),I('🥛','milk'),I('🍬','sugar')],mix:'STIR',cook:'fridge',top:['🐰']}}},
+  july4:{n:'4th of July',e:'🎆',banner:'HAPPY 4TH OF JULY!',done:'Happy Independence Day! Look at the fireworks!',
+    wall:['#1c2f6b','#2a4596'],cloth:['#ffffff','#e8eef8'],accent:'#d62839',accent2:'#ff8a8a',bg:'#0c1636',tile:'linear-gradient(#d62839,#1c2f6b)',
+    fall:['⭐','🎆','✨'],decor:['🎆','🇺🇸','🎇','⭐','🎆'],hat:'🎩',special:{e:'🗽',n:'Lady Liberty',wants:['flagcake','popsicle']},fireworks:true,
+    dishes:{
+      burger:{n:'Burger',e:'🍔',ing:[I('🥩','meat'),I('🧀','cheese'),I('🍞','bun')],mix:'SQUISH',cook:'grill',top:['🥒','🍅']},
+      hotdog:{n:'Hot Dog',e:'🌭',ing:[I('🌭','hot dog'),I('🍞','bun'),I('🧅','onion')],mix:'FLIP',cook:'grill',top:['🟡','🔴']},
+      corn:{n:'Corn on the Cob',e:'🌽',ing:[I('🌽','corn'),I('🧈','butter'),I('🧂','salt')],mix:'ROLL',cook:'grill'},
+      flagcake:{n:'Flag Cake',e:'🍰',ing:[I('🌾','flour'),I('🍓','berries'),I('🫐','blueberry')],mix:'MIX',cook:'oven',top:['🍓','🫐','⭐']},
+      popsicle:{n:'Rocket Pops',e:'🍧',ing:[I('🍓','berries'),I('🍋','lemon'),I('🫐','blueberry')],mix:'BLEND',cook:'freezer',top:['⭐']},
+      watermelon:{n:'Watermelon',e:'🍉',ing:[I('🍉','melon'),I('🔪','slice'),I('🧊','ice')],mix:'CHOP'},
+      lemonade:{n:'Lemonade',e:'🥤',ing:[I('🍋','lemon'),I('🍬','sugar'),I('💧','water')],mix:'SQUEEZE',cook:'fridge'}}},
   birthday:{n:'Birthday',e:'🎂',banner:'HAPPY BIRTHDAY!',done:'Happy Birthday! Best party ever!',
     wall:['#ffd6ec','#c9b6ff'],cloth:['#5aa9ff','#2f7fe0'],accent:'#ff5fa2',accent2:'#ffb3d6',bg:'#2a1640',tile:'linear-gradient(#ff8fc8,#7f6bff)',
     fall:['🎉','🎈','✨'],decor:['🎈','🎁','🎉','🎈'],hat:null,special:{e:'🥳',n:'Birthday Kid',wants:['cake','icecream']},
@@ -337,15 +339,10 @@ const PEOPLE=[{e:'👵',n:'Grandma'},{e:'👴',n:'Grandpa'},{e:'👩',n:'Mom'},{
 const EXTRA=[I('🍌','banana'),I('🥕','carrot'),I('🍫','chocolate'),I('🧀','cheese'),I('🍓','berries'),I('🥒','pickle'),I('🍕','pizza'),I('🧂','salt'),I('🥚','egg'),I('🥛','milk')];
 const SIZES={snack:{n:'SNACK',d:'2 guests',g:2,w:[1,1]},dinner:{n:'DINNER',d:'3 guests',g:3,w:[1,2]},feast:{n:'FEAST',d:'4 guests!',g:4,w:[2,2]}};
 const STEP_ICON={add:'🧺',mix:'🥄',cook:'🔥',decor:'✨',serve:'🍽️'};
-
-/* ============================================================
-   STATE
-   ============================================================ */
 let themeKey='thanksgiving', sizeKey='dinner', G=null, cur=null;
 let stars=0; try{ stars=+localStorage.getItem('holiday-kitchen-stars')||0; }catch(e){}
 function addStars(n){ stars+=n; $('sStar').textContent=stars; try{ localStorage.setItem('holiday-kitchen-stars',stars); }catch(e){} }
 const TH=()=>THEMES[themeKey];
-
 function applyTheme(){
   const t=TH(), r=document.documentElement.style;
   r.setProperty('--wall1',t.wall[0]); r.setProperty('--wall2',t.wall[1]); r.setProperty('--cloth',t.cloth[0]); r.setProperty('--cloth2',t.cloth[1]);
@@ -353,9 +350,10 @@ function applyTheme(){
   document.body.style.background=t.bg;
   $('banner').textContent=t.banner;
   const dec=$('decor'); dec.innerHTML='';
-  const spots=[[4,12],[88,10],[6,40],[90,38],[30,14],[66,15]];
-  spots.forEach((p,i)=>{ const s=document.createElement('span'); s.className='emo'; s.textContent=t.decor[i%t.decor.length];
+  [[4,12],[88,10],[6,40],[90,38],[30,14],[66,15]].forEach((p,i)=>{ const s=document.createElement('span'); s.className='emo'; s.textContent=t.decor[i%t.decor.length];
     s.style.left=p[0]+'%'; s.style.top=p[1]+'%'; s.style.fontSize='clamp(18px,5vh,40px)'; dec.appendChild(s); });
+  if(themeKey==='july4'){ const tc=$('table'); tc.style.background='repeating-linear-gradient(180deg,#d62839 0 14px,#ffffff 14px 28px)'; }
+  else $('table').style.background='';
 }
 function newMeal(){
   const t=TH(), S=SIZES[sizeKey], keys=Object.keys(t.dishes);
@@ -363,11 +361,10 @@ function newMeal(){
   if(t.special){ people[people.length-1]={e:t.special.e,n:t.special.n,sp:t.special}; }
   G={guests:people.map((p,i)=>{
       const n=Math.round(rnd(S.w[0],S.w[1]));
-      let w=p.sp?p.sp.wants.slice(0,n):shuffle(keys).slice(0,n);
+      const w=p.sp?p.sp.wants.slice(0,n):shuffle(keys).slice(0,n);
       return {id:i,face:p.e,name:p.n,hat:p.sp?null:t.hat,wants:w.map(k=>({k,done:false})),happy:false};
     }),busy:false};
-  cur=null;
-  renderGuests(); renderKitchen();
+  cur=null; renderGuests(); renderKitchen();
   setTimeout(()=>{ const g=pick(G.guests); talk(g,'I\'m hungry!'); },500);
 }
 function orders(){
@@ -376,12 +373,8 @@ function orders(){
   return [...m.entries()].map(([k,gs])=>({k,gs}));
 }
 function stepsOf(d){ return ['add','mix',d.cook?'cook':null,d.top?'decor':null,'serve'].filter(Boolean); }
-
-/* ============================================================
-   DINING ROOM
-   ============================================================ */
 function sizeFaces(){
-  const r=$('dining').getBoundingClientRect(), n=G?G.guests.length:3;
+  const r=$('dining').getBoundingClientRect(), n=G&&G.guests.length?G.guests.length:3;
   const f=Math.max(30,Math.min(r.width/(n+.6)*.5,r.height*.24,90));
   document.documentElement.style.setProperty('--face',f+'px');
 }
@@ -408,33 +401,34 @@ function tapGuest(g,el){
   const left=g.wants.filter(w=>!w.done);
   talk(g,left.length?pick(['Yummy!','I\'m hungry!','Hi chef!','Smells good!']):pick(['I\'m full!','Thank you!','Delicious!']));
 }
-
-/* ============================================================
-   KITCHEN
-   ============================================================ */
 const work=$('work'), tray=$('tray'), recipe=$('recipe');
 function stepDots(){ if(!cur) return ''; const st=stepsOf(cur.d), i=st.indexOf(cur.step);
   return '<div class="steps">'+st.map((s,j)=>'<span class="emo '+(j<i?'ok':j===i?'on':'')+'">'+STEP_ICON[s]+'</span>').join('')+'</div>'; }
 function renderRecipe(){
   if(!cur){ recipe.innerHTML='<span class="rd emo">📋</span><div class="rt"><b>What should we cook?</b><div style="font-weight:800;color:#7a5a3a;font-size:clamp(11px,2vh,14px)">Tap a dish the guests want!</div></div>'; return; }
   recipe.innerHTML='<span class="rd emo">'+cur.d.e+'</span><div class="rt"><b>'+cur.d.n+'</b><div class="chips">'+
-    cur.d.ing.map((g,i)=>'<span class="chip emo'+(cur.added.includes(i)?' got':'')+'" data-i="'+i+'">'+g.e+'</span>').join('')+'</div></div>'+stepDots();
+    cur.d.ing.map((g,i)=>'<span class="chip emo'+(cur.added.includes(i)?' got':'')+'">'+g.e+'</span>').join('')+'</div></div>'+stepDots();
 }
+const inBowl=()=>cur.added.map((i,k)=>'<span class="emo" style="left:'+(10+k*28)+'%;top:'+(k%2?18:-6)+'%">'+cur.d.ing[i].e+'</span>').join('');
+function bowlHTML(mixing){ return '<div class="bowl" id="bowl"><div class="back"></div><div class="in" id="bowlIn">'+inBowl()+'</div><div class="front"></div>'+
+  (mixing?'<span class="spoon emo">🥄</span><div class="mixdots" id="mixDots"></div>':'')+'</div>'; }
+const TOPPOS=['left:30%;top:8%','left:58%;top:4%','left:44%;top:28%','left:22%;top:34%','left:66%;top:30%'];
+function plateHTML(){ return '<div class="bigPlate" id="plate"><span class="dish emo">'+cur.d.e+'</span>'+(cur.tops||[]).map((t,i)=>'<span class="top emo" style="'+TOPPOS[i%5]+'">'+t+'</span>').join('')+'</div>'; }
 function renderKitchen(){
-  renderRecipe(); tray.className=''; idleT=0;
+  renderRecipe(); tray.className=''; tray.style.gridTemplateColumns=''; idleT=0;
   if(!cur){
     const os=orders();
     work.innerHTML='<div class="orders">'+os.map(o=>'<button class="order" type="button" data-k="'+o.k+'"><span class="oe emo">'+TH().dishes[o.k].e+'</span><span class="on">'+TH().dishes[o.k].n+'</span><span class="ow emo">'+o.gs.map(g=>g.face).join('')+'</span></button>').join('')+'</div>';
-    tray.innerHTML=''; 
+    tray.innerHTML='';
     work.querySelectorAll('.order').forEach(b=>onTap(b,()=>startDish(b.dataset.k)));
-    say('What should we cook? Tap a dish!'); return;
+    say('What should we cook? Tap a dish!'); syncGlow(); return;
   }
   const d=cur.d;
   if(cur.step==='add'){
     work.innerHTML=bowlHTML();
-    const decoys=shuffle(Object.values(TH().dishes).flatMap(x=>x.ing).concat(EXTRA).filter(x=>!d.ing.some(y=>y.e===x.e)))
-      .filter((x,i,a)=>a.findIndex(y=>y.e===x.e)===i).slice(0,3);
-    cur.tiles=cur.tiles||shuffle(d.ing.map((x,i)=>({...x,i})).concat(decoys.map(x=>({...x,i:-1}))));
+    if(!cur.tiles){ const decoys=shuffle(Object.values(TH().dishes).flatMap(x=>x.ing).concat(EXTRA).filter(x=>!d.ing.some(y=>y.e===x.e)))
+        .filter((x,i,a)=>a.findIndex(y=>y.e===x.e)===i).slice(0,3);
+      cur.tiles=shuffle(d.ing.map((x,i)=>({...x,i})).concat(decoys.map(x=>({...x,i:-1})))); }
     tray.innerHTML=cur.tiles.map((x,j)=>'<button class="tile'+(x.i>=0&&cur.added.includes(x.i)?' used':'')+'" type="button" data-j="'+j+'"><span class="te emo">'+x.e+'</span><span class="tl">'+x.n+'</span></button>').join('');
     tray.querySelectorAll('.tile').forEach(b=>onTap(b,()=>addIng(+b.dataset.j,b)));
     say('Put in the '+d.ing.map(x=>x.n).join(', ')+'!');
@@ -444,101 +438,86 @@ function renderKitchen(){
     onTap($('mixBtn'),doMix); say('Tap '+d.mix+'! '+d.mix+'! '+d.mix+'!');
   } else if(cur.step==='cook'){
     const c=COOK[d.cook];
-    work.innerHTML='<div class="app'+(c.grill?' grill':'')+(c.cold?' cold':'')+(cur.cook>0?' full':'')+'" id="app"><span class="knob" style="left:8%"></span><span class="knob" style="right:8%"></span>'+
+    work.innerHTML='<div class="app'+(c.grill?' grill':'')+(c.cold?' cold':'')+'" id="app"><span class="knob" style="left:8%"></span><span class="knob" style="right:8%"></span>'+
       '<div class="lbl">'+c.n+' <span class="emo">'+c.e+'</span></div><div class="win"><span class="emo" id="inDish">🥣</span></div><div class="bar"><i id="cookBar"></i></div></div>';
-    tray.className='one';
-    tray.innerHTML='<button class="big" type="button" id="cookBtn"><span class="be emo">'+c.e+'</span>'+c.put+'</button>';
+    tray.className='one'; tray.innerHTML='<button class="big" type="button" id="cookBtn"><span class="be emo">'+c.e+'</span>'+c.put+'</button>';
     onTap($('cookBtn'),doCook); say(c.put.charAt(0)+c.put.slice(1).toLowerCase()+'!');
   } else if(cur.step==='decor'){
     work.innerHTML=plateHTML(); cur.tops=[];
     tray.innerHTML=d.top.map(t=>'<button class="tile" type="button" data-t="'+t+'"><span class="te emo">'+t+'</span><span class="tl">ADD</span></button>').join('');
     if(d.top.length<3) tray.style.gridTemplateColumns='repeat('+d.top.length+',minmax(0,1fr))';
-    tray.querySelectorAll('.tile').forEach(b=>onTap(b,()=>addTop(b.dataset.t,b)));
+    tray.querySelectorAll('.tile').forEach(b=>onTap(b,()=>addTop(b.dataset.t)));
     say('Decorate it! Tap the toppings!');
   } else if(cur.step==='serve'){
-    work.innerHTML=plateHTML(true);
+    work.innerHTML=plateHTML();
     tray.className='one'; tray.innerHTML='<div class="hint">Who wants the <b>'+d.n+'</b>? Tap them! <span class="emo">👉</span></div>';
     say('Who wants the '+d.n+'? Tap them!');
   }
-  if(cur.step!=='decor') tray.style.gridTemplateColumns='';
   syncGlow();
 }
-function bowlHTML(mixing){
-  return '<div class="bowl'+(mixing?'':'')+'" id="bowl"><div class="back"></div><div class="in" id="bowlIn">'+
-    cur.added.map((i,k)=>'<span class="emo" style="left:'+(10+k*28)+'%;top:'+(k%2?18:-6)+'%">'+cur.d.ing[i].e+'</span>').join('')+
-    '</div><div class="front"></div>'+(mixing?'<span class="spoon emo">🥄</span><div class="mixdots" id="mixDots"></div>':'')+'</div>';
-}
-function plateHTML(done){
-  const tops=(cur.tops||[]).map((t,i)=>'<span class="top emo" style="'+TOPPOS[i%TOPPOS.length]+'">'+t+'</span>').join('');
-  return '<div class="bigPlate" id="plate"><span class="dish emo">'+cur.d.e+'</span>'+tops+'</div>';
-}
-const TOPPOS=['left:30%;top:8%','left:58%;top:4%','left:44%;top:28%','left:22%;top:34%','left:66%;top:30%'];
-
-function startDish(k){
-  sfx.tap(); const d=TH().dishes[k];
-  cur={k,d,step:'add',added:[],mix:0,cook:0,cookT:0,tops:[],tiles:null};
-  renderKitchen();
-}
-function nextStep(){
-  const st=stepsOf(cur.d), i=st.indexOf(cur.step);
-  cur.step=st[i+1]; renderKitchen();
-}
+function startDish(k){ sfx.tap(); cur={k,d:TH().dishes[k],step:'add',added:[],mix:0,cook:0,cookT:0,tops:[],tiles:null}; renderKitchen(); }
+function nextStep(){ if(!cur) return; const st=stepsOf(cur.d); cur.step=st[st.indexOf(cur.step)+1]; cur.adv=0; renderKitchen(); }
 function addIng(j,el){
   const x=cur.tiles[j];
   if(x.i<0){ nope(el,'Silly! No '+x.n+' in '+cur.d.n+'! 🙃'); return; }
   if(cur.added.includes(x.i)) return;
   cur.added.push(x.i); el.classList.add('used'); idleT=0;
-  fly(el,$('bowl'),x.e,()=>{ sfx.plop(); renderRecipe(); $('bowlIn').innerHTML=cur.added.map((i,k)=>'<span class="emo" style="left:'+(10+k*28)+'%;top:'+(k%2?18:-6)+'%">'+cur.d.ing[i].e+'</span>').join('');
-    if(cur.added.length===cur.d.ing.length){ G.busy=true; setTimeout(()=>{ G.busy=false; nextStep(); },600); } });
+  fly(el,$('bowl'),x.e,()=>{ sfx.plop(); renderRecipe(); $('bowlIn').innerHTML=inBowl();
+    if(cur.added.length===cur.d.ing.length&&!cur.adv){ cur.adv=1; G.busy=true; setTimeout(()=>{ G.busy=false; nextStep(); },600); } });
   syncGlow();
 }
 const MIXN=6;
 function doMix(){
   if(cur.mix>=MIXN) return;
-  cur.mix++; sfx.mix(); idleT=0;
+  cur.mix++; sfx.mix();
   const b=$('bowl'); b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin');
   $('mixDots').textContent='●'.repeat(cur.mix)+'○'.repeat(MIXN-cur.mix);
   for(let i=0;i<3;i++) poof(b,pick(['✨','💫',cur.d.ing[i%cur.d.ing.length].e]));
-  if(cur.mix>=MIXN){ $('bowlIn').innerHTML='<span class="emo" style="left:30%;top:0%;font-size:min(10vh,54px)">'+cur.d.e+'</span>'; G.busy=true; setTimeout(()=>{ G.busy=false; nextStep(); },700); }
+  if(cur.mix>=MIXN&&!cur.adv){ cur.adv=1; $('bowlIn').innerHTML='<span class="emo" style="left:30%;top:0%;font-size:min(10vh,54px)">'+cur.d.e+'</span>'; G.busy=true; syncGlow(); setTimeout(()=>{ G.busy=false; nextStep(); },700); }
 }
 function doCook(){
   const c=COOK[cur.d.cook], btn=$('cookBtn'), app=$('app');
-  if(cur.cook===0){ cur.cook=1; cur.cookT=0; sfx.door(); app.classList.add('full','cooking'); $('inDish').textContent='🥣';
+  if(cur.cook===0){ cur.cook=1; cur.cookT=0; sfx.door(); app.classList.add('full','cooking');
     btn.className='big wait'; btn.innerHTML='<span class="be emo">⏳</span>'+(c.cold?'CHILLING…':'COOKING…'); say(c.cold?'Chilling… brrr! ❄️':'Cooking… smells yummy! '+c.e); syncGlow(); return; }
   if(cur.cook===1){ nope(btn,'Wait for the DING!'); return; }
   if(cur.cook===2){ sfx.door(); cur.cook=3; nextStep(); }
+  return;
 }
-function addTop(t,el){
+function addTop(t){
   if(cur.tops.length>=3) return;
-  cur.tops.push(t); sfx.top(); idleT=0;
-  const p=$('plate'), s=document.createElement('span'); s.className='top emo'; s.textContent=t; s.setAttribute('style',TOPPOS[(cur.tops.length-1)%TOPPOS.length]); p.appendChild(s);
+  cur.tops.push(t); sfx.top();
+  const p=$('plate'), s=document.createElement('span'); s.className='top emo'; s.textContent=t; s.setAttribute('style',TOPPOS[(cur.tops.length-1)%5]); p.appendChild(s);
   poof(p,'✨');
-  if(cur.tops.length>=3){ G.busy=true; say('So pretty! ✨'); setTimeout(()=>{ G.busy=false; nextStep(); },700); }
+  if(cur.tops.length>=3&&!cur.adv){ cur.adv=1; G.busy=true; say('So pretty! ✨'); setTimeout(()=>{ G.busy=false; nextStep(); },700); }
   syncGlow();
 }
 function serveTo(g,w){
   const dish=$('plate').querySelector('.dish'), pl=g.el.querySelector('.plate span');
-  w.done=true; const k=cur.k, d=cur.d, tops=cur.tops.slice(); cur=null; G.busy=true;
+  w.done=true; const d=cur.d, tops=cur.tops.slice(); cur=null; G.busy=true;
   fly(dish,g.el.querySelector('.plate'),d.e,()=>{
     pl.textContent=d.e+(tops[0]||''); pl.style.opacity=1; pl.style.transform='translateY(-22%)';
     sfx.yum(); g.el.classList.remove('munch'); void g.el.offsetWidth; g.el.classList.add('munch');
     talk(g,pick(['YUM!','Delicious!','Mmm, '+d.n+'!','Thank you!','Yummy yummy!']));
     hearts(g.el,4); addStars(1); sfx.star();
     g.el.querySelectorAll('.wish').forEach((s,i)=>s.classList.toggle('done',g.wants[i].done));
-    setTimeout(()=>{ pl.style.opacity=0; pl.style.transform='translateY(-22%) scale(.3)'; },1600);
+    setTimeout(()=>{ pl.style.opacity=0; },1600);
     if(g.wants.every(x=>x.done)){ g.happy=true; g.el.classList.add('happy'); setTimeout(()=>{ talk(g,'I\'m so full! 😄'); hearts(g.el,6); },1400); }
     setTimeout(()=>{ G.busy=false; if(!orders().length) mealDone(); else renderKitchen(); },1100);
   });
-  work.innerHTML=''; tray.innerHTML=''; say('Here you go, '+g.name+'!');
-  syncGlow();
+  work.innerHTML=''; tray.innerHTML=''; say('Here you go, '+g.name+'!'); syncGlow();
 }
 function mealDone(){
   const t=TH(); addStars(3); sfx.fanfare(); confetti(70);
+  if(t.fireworks){ fireworks(); sfx.boom(); setTimeout(sfx.boom,900); }
   for(const g of G.guests) hearts(g.el,5,['❤️','⭐','🎉']);
-  setTimeout(()=>{ $('dE').textContent=t.e; $('dH').textContent=t.banner; $('dS').textContent=t.done+' +3 ⭐'; $('done').classList.remove('hidden'); },1500);
+  setTimeout(()=>{ $('dE').textContent=t.e; $('dH').textContent=t.banner; $('dS').textContent=t.done+' +3 ⭐'; $('done').classList.remove('hidden'); },t.fireworks?2400:1500);
 }
-
-/* ---------- little effects ---------- */
+function fireworks(){
+  for(let b=0;b<6;b++) setTimeout(()=>{ const x=rnd(10,90), y=rnd(10,45);
+    for(let i=0;i<12;i++){ const s=document.createElement('span'); s.className='poof emo'; s.textContent=pick(['✨','⭐','💥']); s.style.position='fixed'; s.style.zIndex=27;
+      s.style.left=x+'vw'; s.style.top=y+'vh'; const a=i/12*6.28; s.style.setProperty('--dx',Math.cos(a)*90+'px'); s.style.setProperty('--dy',Math.sin(a)*90+'px'); s.style.animationDuration='1.1s';
+      s.style.filter='hue-rotate('+pick([0,140,220])+'deg)'; document.body.appendChild(s); setTimeout(()=>s.remove(),1200); } },b*350);
+}
 function fly(fromEl,toEl,emo,done){
   const a=fromEl.getBoundingClientRect(), b=toEl.getBoundingClientRect();
   const f=document.createElement('div'); f.className='flyer'; f.innerHTML='<span class="emo">'+emo+'</span>';
@@ -560,31 +539,25 @@ function fallTick(dt){ fallT-=dt; if(fallT>0) return; fallT=rnd(.7,1.3);
   const d=$('dining'), s=document.createElement('span'); s.className='fall emo'; s.textContent=pick(TH().fall);
   s.style.left=rnd(0,95)+'%'; s.style.fontSize=rnd(14,26)+'px'; s.style.animationDuration=rnd(6,10)+'s'; s.style.opacity=.85;
   s.style.setProperty('--dx',rnd(-60,60)+'px'); s.style.setProperty('--r',rnd(-200,200)+'deg'); d.appendChild(s); setTimeout(()=>s.remove(),10500); }
-
-/* ---------- guidance glow ---------- */
 let idleT=0;
 function syncGlow(){
   document.querySelectorAll('.want').forEach(e=>e.classList.remove('want'));
   if(!G||G.busy||!$('title').classList.contains('hidden')||!$('done').classList.contains('hidden')) return;
   let el=null;
-  if(!cur){ el=work.querySelector('.order'); }
+  if(!cur) el=work.querySelector('.order');
   else if(cur.step==='add'){ if(idleT>2.5){ const j=cur.tiles.findIndex(x=>x.i>=0&&!cur.added.includes(x.i)); el=tray.querySelector('.tile[data-j="'+j+'"]'); } }
   else if(cur.step==='mix') el=$('mixBtn');
   else if(cur.step==='cook'){ if(cur.cook!==1) el=$('cookBtn'); }
   else if(cur.step==='decor') el=tray.querySelector('.tile');
-  else if(cur.step==='serve'){ for(const g of G.guests) if(g.wants.some(w=>w.k===cur.k&&!w.done)) g.el.classList.add('want'); el=G.guests.find(g=>g.el.classList.contains('want')).el; }
+  else if(cur.step==='serve'){ for(const g of G.guests) if(g.wants.some(w=>w.k===cur.k&&!w.done)) g.el.classList.add('want'); const f=G.guests.find(g=>g.el.classList.contains('want')); el=f&&f.el; }
   if(el) el.classList.add('want');
 }
 function placePointer(){
   const el=document.querySelector('.want'), p=$('pointer');
   if(!el){ p.style.display='none'; return; }
-  const r=el.getBoundingClientRect(); const tgt=el.classList.contains('guest')?el.querySelector('.plate').getBoundingClientRect():r;
+  const tgt=el.classList.contains('guest')?el.querySelector('.plate').getBoundingClientRect():el.getBoundingClientRect();
   p.style.display='block'; p.style.left=(tgt.left+tgt.width/2-14)+'px'; p.style.top=(tgt.bottom-12)+'px';
 }
-
-/* ============================================================
-   LOOP
-   ============================================================ */
 let last=performance.now(), bubT=0;
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000); last=now;
@@ -596,17 +569,13 @@ function frame(now){
       const bar=$('cookBar'); if(bar) bar.style.width=(k*100)+'%';
       bubT-=dt; if(bubT<=0){ bubT=.25; if(!c.cold) sfx.bubble(); const a=$('app'); if(a){ const s=document.createElement('span'); s.className='steam emo'; s.textContent=c.cold?'❄️':'💨'; s.style.left=rnd(20,70)+'%'; s.style.top='18%'; a.appendChild(s); setTimeout(()=>s.remove(),1400); } }
       if(k>=1){ cur.cook=2; sfx.ding(); const a=$('app'); a.classList.remove('cooking'); a.classList.add('done'); $('inDish').textContent=cur.d.e;
-        const dt2=document.createElement('div'); dt2.className='dingT'; dt2.textContent='DING!'; a.appendChild(dt2);
+        const d2=document.createElement('div'); d2.className='dingT'; d2.textContent='DING!'; a.appendChild(d2);
         const b=$('cookBtn'); b.className='big ding'; b.innerHTML='<span class="be emo">🧤</span>TAKE IT OUT!'; say('DING! It\'s ready! Take it out!'); syncGlow(); }
     }
   }
   placePointer();
   requestAnimationFrame(frame);
 }
-
-/* ============================================================
-   MENUS
-   ============================================================ */
 function buildTitle(){
   $('themes').innerHTML=Object.keys(THEMES).map(k=>{ const t=THEMES[k]; return '<button class="th'+(k===themeKey?' on':'')+'" type="button" data-k="'+k+'" style="background:'+t.tile+'"><span class="te emo">'+t.e+'</span><b>'+t.n+'</b></button>'; }).join('');
   $('themes').querySelectorAll('.th').forEach(b=>onTap(b,()=>{ themeKey=b.dataset.k; sfx.tap(); buildTitle(); applyTheme(); }));
@@ -623,7 +592,7 @@ $('sStar').textContent=stars;
 buildTitle(); applyTheme();
 G={guests:[],busy:false};
 requestAnimationFrame(frame);
-window.__HK={get cur(){return cur},get G(){return G},setTheme:k=>{themeKey=k;},setSize:k=>{sizeKey=k;},hint:()=>{idleT=9;syncGlow();}};
+window.__HK={get cur(){return cur},get G(){return G},hint:()=>{idleT=9;syncGlow();}};
 })();
 </script>
 </body>
